@@ -2,7 +2,7 @@
 
 **Study with Adaptive Gaming Environments**
 
-A free, private study app in a single file: spaced-repetition flash cards, a printable-style quiz, several study games, and an optional AI study guide, all built from your own notes. No account, no ads, no install.
+A free, private study app in a single file: spaced-repetition flash cards, a printable-style quiz, seven study games, and an optional AI study guide, all built from your own notes. No account, no ads, no install.
 
 <!-- Screenshots go here, for example:
 ![Deck list](docs/decks.png)
@@ -235,7 +235,7 @@ const CRYPTO_WALLETS = [...]; // shows the Donate link and window
 
 Leave a value empty to hide it.
 
-**Hosting your own copy on GitHub Pages.** Rename or copy `sage.html` to `index.html` and enable Pages in the repository settings. Note that every project published under the same `your-name.github.io` address shares browser storage with the others, including saved API keys, so only host projects you trust there, or give SAGE its own custom domain.
+**Hosting your own copy on GitHub Pages.** The repository's `index.html` is a two-line page that forwards visitors to `sage.html`, so there's only one copy of the app to update. Enable Pages in the repository settings (main branch, root folder). Note that every project published under the same `your-name.github.io` address shares browser storage with the others, including saved API keys, so only host projects you trust there, or give SAGE its own custom domain.
 
 **Releasing an update.** Bump `APP_VERSION`, note the changes in `CHANGELOG.md`, and attach `sage.html`, `sage.ico`, and `sage-icon.png` to a new GitHub Release. Saved data uses a versioned format, so new versions can upgrade old saves.
 
