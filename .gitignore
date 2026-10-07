@@ -1,0 +1,4 @@
+__pycache__/
+tests/.qr.png
+tests/.evil-backup.json
+.DS_Store

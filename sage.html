@@ -56,6 +56,7 @@ body.wide .top,body.wide main{max-width:1240px}
 .donate-link:hover{text-decoration:underline}
 .brand small{font-size:.8rem;font-weight:400;color:var(--muted);letter-spacing:0;margin-left:6px}
 .top-actions{display:flex;flex-wrap:wrap;justify-content:flex-end;gap:8px}
+@media (max-width:560px){.top{flex-wrap:wrap;padding:16px 16px 12px}.top-actions{width:100%;justify-content:flex-start;gap:6px}.top-actions .btn{padding:7px 12px;font-size:.88rem}}
 main{max-width:860px;margin:0 auto;padding:0 20px 48px}
 
 .btn{border:1.5px solid var(--line);background:var(--panel);border-radius:999px;padding:9px 18px;cursor:pointer;font-weight:700;transition:background .15s,border-color .15s}
@@ -336,6 +337,12 @@ dialog h2{margin:0 0 16px;font-size:1.25rem}
     radial-gradient(#ffffff16 1px,transparent 1.6px) 4px 3px/11px 11px,
     linear-gradient(150deg,var(--r1),var(--r2) 50%,var(--r3))}
 .rock.long{font-size:.8rem}
+/* Rocks grow with their text only up to a point; past that the text spills over the rock (the dark outline keeps it readable). */
+.rock{max-height:150px;overflow:visible}
+@media (max-width:640px){
+  .rock{min-height:64px;max-height:110px;padding:10px 6px;font-size:.78rem;line-height:1.15;overflow-wrap:break-word;hyphens:auto}
+  .rock.long{font-size:.68rem}
+}
 .rock:hover::before,.rock:focus-visible::before{filter:brightness(1.3) drop-shadow(0 0 2px #FFD27A)}
 .rock.hit{opacity:0;transition:opacity .08s;pointer-events:none}
 .rock.shatter{opacity:0;transition:opacity .3s .12s;pointer-events:none}
@@ -417,7 +424,10 @@ dialog h2{margin:0 0 16px;font-size:1.25rem}
 .astro.p5{--glow:#E8D49A;background:var(--light),repeating-linear-gradient(176deg,#A88F5A 0 16%,#8C7446 16% 26%,#B59D68 26% 38%)}
 .astro.p5::after{content:"";position:absolute;left:-16%;right:-16%;top:38%;height:28%;border-radius:50%;pointer-events:none;
   border:4px solid #E8D49Acc;border-top-color:transparent;transform:rotate(-14deg)}
-.astro{overflow:hidden}
+.astro{overflow:visible}
+/* Text sits above the planet, its ring, and its glow; if it's too long for the planet it spills over the edge instead of being cut off */
+.astro-text{position:relative;z-index:2;max-width:150%;overflow-wrap:anywhere;text-shadow:0 1px 3px #000,0 0 6px #000,0 0 2px #000}
+@media (max-width:640px){.astro{padding:8px;font-size:.8rem}.astro.long{font-size:.7rem}.astro.xlong{font-size:.6rem}}
 .astro.long{font-size:.8rem}
 .astro.xlong{font-size:.66rem;line-height:1.1}
 .astro:hover,.astro:focus-visible{box-shadow:0 0 0 3px #ffffffb0,0 0 18px var(--glow)}
@@ -631,6 +641,14 @@ dialog h2{margin:0 0 16px;font-size:1.25rem}
 .help details summary{cursor:pointer;font-weight:700}
 .help details p,.help details ul{margin:8px 0 0}
 .help kbd{font:inherit;font-size:.82rem;font-weight:700;padding:1px 7px;border:1.5px solid var(--line);border-radius:6px;background:var(--card)}
+/* Data safety: backup reminder and backup window */
+.nudge{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 16px;margin:4px 0 18px;padding:12px 14px 12px 18px;
+  background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--hard);border-radius:14px}
+.nudge-btns{display:flex;flex-wrap:wrap;gap:6px}
+#backupDlg{width:min(560px,94vw)}
+.bk-section{margin:14px 0;padding:14px 0 4px;border-top:1px solid var(--line)}
+.bk-section h3{margin:0 0 4px;font-size:1.02rem}
+#persistStatus{font-size:.85rem}
 .toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:8px;font-weight:700;z-index:50}
 </style>
 </head>
@@ -655,6 +673,13 @@ dialog h2{margin:0 0 16px;font-size:1.25rem}
 <main>
   <!-- HOME -->
   <section id="view-home">
+    <div class="nudge" id="backupNudge" role="status" hidden>
+      <span id="nudgeMsg"></span>
+      <span class="nudge-btns">
+        <button class="btn primary" id="nudgeAction"></button>
+        <button class="btn quiet" id="nudgeLater">Remind me later</button>
+      </span>
+    </div>
     <div id="deckWrap" hidden>
       <h1>Your decks</h1>
       <ul class="decks" id="deckList"></ul>
@@ -859,6 +884,7 @@ dialog h2{margin:0 0 16px;font-size:1.25rem}
       <input id="termInput" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="Type the answer here">
       <div class="pause-overlay" id="terminalPaused" hidden>Paused<button class="btn primary" data-resume="terminal">Resume</button></div>
     </div>
+    <div class="actions" style="justify-content:center;margin-top:10px"><button type="button" class="btn" id="termHintBtn">Show the answer</button></div>
     <p class="keys" id="termKeys">Type the whole line, filling the blank with one of the options above it. The clock starts on your first keystroke. Tab reveals the answer, Esc pauses.</p>
   </section>
 
@@ -956,7 +982,7 @@ dialog h2{margin:0 0 16px;font-size:1.25rem}
       </div>
       <div class="pause-overlay" id="lightningPaused" hidden>Paused<button class="btn primary" data-resume="lightning">Resume</button></div>
     </div>
-    <p class="keys">Is that the right match? Answer fast: every 5 in a row raises your multiplier. Wrong answers cost 2 seconds. P pauses.</p>
+    <p class="keys">Is that the right match? Right answers add 5 seconds (3 after the first five minutes), wrong ones take 5 away, and every 5 in a row raises your multiplier. P pauses.</p>
   </section>
 
   <!-- AI STUDY GUIDE -->
@@ -1105,9 +1131,9 @@ Osmosis,Water moving across a membrane</pre>
           <li><strong>Matching Pairs:</strong> wire each item on the left to its match on the right.</li>
           <li><strong>Scramble:</strong> shoot the falling rock with the right answer.</li>
           <li><strong>Blast:</strong> shoot the right planet and clear each level before time runs out.</li>
-          <li><strong>Terminal:</strong> type each card, choosing the missing word from four options.</li>
-          <li><strong>Survival:</strong> type just the missing word from memory, with 3 lives.</li>
-          <li><strong>Lightning:</strong> decide true or false as fast as you can.</li>
+          <li><strong>Terminal:</strong> type each card, choosing the missing word from four options. Every word you type adds a second to the clock.</li>
+          <li><strong>Survival:</strong> type just the missing word from memory, with 3 lives. Tab or the hint button reveals a letter for a life.</li>
+          <li><strong>Lightning:</strong> decide true or false as fast as you can. Right answers add 5 seconds (3 after five minutes), wrong ones take 5 away.</li>
         </ul>
         <p><strong>Deck editor</strong> (<strong>Options → Edit cards</strong>): add, edit, delete (with undo), search, and reorder cards. New cards are studied in the order shown.</p>
       </section>
@@ -1121,11 +1147,12 @@ Osmosis,Water moving across a membrane</pre>
           <li>Go to <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer">Google AI Studio</a> and sign in with a Google account.</li>
           <li>Click <strong>Create API key</strong>, then copy the key (it starts with <code>AIza</code>).</li>
           <li>In SAGE, open <strong>AI study guide</strong>, choose <strong>Google Gemini</strong>, and paste the key. The model box fills in
-            <code>gemini-3.5-flash</code>, a stable free-tier model that handles images and PDFs. Google releases newer Flash versions often; you can type a newer model name into the box anytime.</li>
+            <code>gemini-3.5-flash-lite</code>: stable, fast, reads images and PDFs, and has a much bigger free daily allowance (about 500 requests a day, versus about 20 for the full Flash models). You can type another model name into the box anytime.</li>
         </ol>
         <ul>
           <li><strong>Choose a model that can read images and files.</strong> Text-only models can't use photos or PDFs.</li>
           <li><strong>Free means rate-limited.</strong> If you see "too many requests," wait a minute. Free limits change from time to time; AI Studio shows the current ones.</li>
+          <li><strong>"Busy" or "overloaded" errors</strong> come from Google's servers, not your key. SAGE automatically retries and, if needed, switches to a backup Gemini model, telling you which one answered.</li>
           <li><strong>Privacy:</strong> Google says free-tier requests may be used to improve its products, so avoid sending anything private.</li>
           <li><strong>Other options:</strong> Anthropic (Claude) and OpenAI, or any service with an OpenAI-style API, work too. They're pay-as-you-go; a study guide typically costs a few cents.</li>
           <li><strong>The instructions are yours to edit.</strong> Change the <strong>Instructions for the AI</strong> box to get more cards, simpler wording, or another language. <strong>Reset to default</strong> brings back the original.</li>
@@ -1136,6 +1163,12 @@ Osmosis,Water moving across a membrane</pre>
         <h2>Saving, backups, and updating</h2>
         <ul>
           <li>Everything saves automatically in this browser on this computer. There's no account.</li>
+          <li><strong>Autosave to a file (Chrome and Edge, recommended):</strong> open <strong>Backup</strong> and press <strong>Choose a save file</strong> once.
+            SAGE then keeps that file up to date every time you study, so your decks are safe even if browser data is cleared. On a new computer,
+            choose <strong>Use an existing save file</strong> to pick up where you left off. After a browser restart, you may need to press <strong>Reconnect</strong> once.</li>
+          <li><strong>Backup reminder:</strong> if nothing has been saved outside the browser for a week, SAGE shows a note with a one-click backup.
+            <strong>Remind me later</strong> hides it for three days.</li>
+          <li><strong>Storage protection:</strong> SAGE asks your browser not to clear its data on its own when space runs low. Some browsers ask you to allow this.</li>
           <li>Clearing your browser's history or site data deletes your decks. Opening SAGE in a different browser starts empty.</li>
           <li>Use <strong>Backup → Export backup</strong> every so often. To move to another computer or browser, export there and choose <strong>Restore from backup</strong> here.</li>
           <li>Leave <code>sage.html</code> where it is. In some browsers, moving or renaming it can hide your saved decks (restoring a backup brings them back).</li>
@@ -1205,6 +1238,7 @@ Osmosis,Water moving across a membrane</pre>
         <details><summary>The AI study guide shows an error</summary>
           <ul><li><strong>Key rejected:</strong> copy the key again and check the provider matches the key (Gemini keys start with <code>AIza</code>).</li>
             <li><strong>Model name not found:</strong> models get renamed or retired. Check your provider's model list and type a current name in the Model box.</li>
+            <li><strong>Busy or overloaded:</strong> the provider's servers are swamped. SAGE retries and switches Gemini models on its own; if it still fails, try again in a few minutes.</li>
             <li><strong>Too many requests or out of credit:</strong> wait a minute on the free tier, or check your provider account.</li>
             <li><strong>Couldn't reach the provider:</strong> check your internet connection.</li>
             <li><strong>Google says the key isn't allowed for this API:</strong> open the key in Google AI Studio and make sure it's limited to the Gemini (Generative Language) API.</li>
@@ -1305,20 +1339,35 @@ Osmosis,Water moving across a membrane</pre>
 <!-- Backup -->
 <dialog id="backupDlg">
   <button type="button" class="dlg-close" data-close aria-label="Close">&times;</button>
-  <h2>Backup</h2>
-  <p class="hint">Decks live in this browser. Clearing browser data erases them, so export a backup now and then. A backup also moves your decks to another computer.</p>
-  <div class="actions" style="justify-content:flex-start;margin:16px 0">
-    <button class="btn primary" id="exportBtn">Export backup</button>
-    <label class="btn" for="restoreIn">Restore from backup</label>
-    <input type="file" id="restoreIn" accept=".json,application/json" hidden>
-  </div>
+  <h2>Backups and saving</h2>
+  <p class="hint">Your decks live in this browser. Clearing browser data erases them, so keep a copy outside the browser.</p>
+  <section class="bk-section" id="autoBox" hidden>
+    <h3>Autosave to a file <span class="hint">(recommended)</span></h3>
+    <p class="hint" id="autoStatus"></p>
+    <div class="actions" style="justify-content:flex-start">
+      <button class="btn primary" id="autoChoose">Choose a save file</button>
+      <button class="btn" id="autoOpen">Use an existing save file</button>
+      <button class="btn primary" id="autoReconnect" hidden>Reconnect</button>
+      <button class="btn quiet" id="autoStop" hidden>Stop autosaving</button>
+    </div>
+  </section>
+  <section class="bk-section">
+    <h3>Backup file</h3>
+    <p class="hint" id="backupStatus"></p>
+    <div class="actions" style="justify-content:flex-start">
+      <button class="btn" id="exportBtn">Export backup</button>
+      <label class="btn" for="restoreIn">Restore from backup</label>
+      <input type="file" id="restoreIn" accept=".json,application/json" hidden>
+    </div>
+  </section>
+  <p class="hint" id="persistStatus"></p>
   <div class="actions"><button class="btn quiet" id="closeBackup">Close</button></div>
 </dialog>
 
 <script>
 /* ===================== Config ===================== */
 const APP_NAME = 'SAGE';                 // rename the app here
-const APP_VERSION = '1.0.0';
+const APP_VERSION = '1.1.0';
 // Footer links. Leave a value empty to hide it.
 const GITHUB_URL = 'https://github.com/tobiward/SAGE';
 const CRYPTO_WALLETS = [                  // addresses shown in the "Support SAGE" window
@@ -1479,6 +1528,7 @@ function save(){
   if (!storageOK) return;
   try { localStorage.setItem(STORE_KEY, JSON.stringify(db)); }
   catch(e){ toast('Could not save. Browser storage may be full.'); }
+  afterSave();                                   // data safety: autosave file, backup reminder, storage protection
 }
 
 /* ===================== Helpers ===================== */
@@ -1499,6 +1549,7 @@ function fmtInterval(ms){
   if (d < 365) return `${(d / 30).toFixed(d < 300 ? 1 : 0).replace(/\.0$/, '')}mo`;
   return `${(d / 365).toFixed(1).replace(/\.0$/, '')}y`;
 }
+const fmtClock = ms => { const s = Math.round(ms / 1000); return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; };
 let toastTimer;
 function toast(msg){
   let t = $('.toast'); if (!t){ t = document.createElement('div'); t.className = 'toast'; t.setAttribute('role','status'); document.body.append(t); }
@@ -1540,6 +1591,7 @@ function deckCounts(deck){
 const countSpan = (n, cls) => `<span class="${n ? cls : 'c-zero'}">${n}</span>`;
 
 function renderHome(){
+  renderBackupNudge();
   const list = $('#deckList');
   $('#deckWrap').hidden = !db.decks.length;
   $('#emptyState').hidden = !!db.decks.length;
@@ -2421,7 +2473,8 @@ function blastRound(){
     const el = document.createElement('button');
     const text = blastAns(o);
     el.className = `astro p${Math.floor(Math.random() * 6)}` + (text.length > 90 ? ' xlong' : text.length > 45 ? ' long' : '');
-    el.textContent = text; el.style.width = el.style.height = size + 'px';
+    const label = document.createElement('span'); label.className = 'astro-text'; label.textContent = text; el.append(label);
+    el.style.width = el.style.height = size + 'px';
     // Fly in from whichever edge (top, left, or right) is closest to the planet's spot.
     const fromTop = y, fromLeft = x, fromRight = W - size - x, m = Math.min(fromTop, fromLeft, fromRight);
     const sx = m === fromLeft ? -size - 30 : m === fromRight ? W + 30 : x;
@@ -2759,33 +2812,60 @@ function stopTerminal(){ if (tg){ tg.alive = false; clearInterval(tg.timer); tg 
 // Accents never count against you (most keyboards can't type them easily); the missing word also ignores capitals.
 const termNorm = (ch, loose) => { const c = ch.normalize('NFD').replace(/[\u0300-\u036f]/g, ''); return loose ? c.toLowerCase() : c; };
 const termClean = t => t.replace(/\s+/g, ' ').trim();
-const TERM_STOP = new Set('the a an and or of to in on at by for with from as is are was were be been it its this that these those into than then over under not no'.split(' '));
+// Words that make poor blanks: they're either too common to test anything, or give the answer away by grammar alone.
+const TERM_STOP = new Set(('the a an and or of to in on at by for with from as is are was were be been it its this that these those into than then over under not no ' +
+  'also very just more most some such each other only both many much onto upon your their there which when where what will would could should ' +
+  'have has had does did can may might must about after before while because between through without within across every being them they ' +
+  'make makes made use used uses using like well even still into same thing things something').split(' '));
 const termWords = text => [...text.matchAll(/[\p{L}\p{N}][\p{L}\p{N}'\u2019-]*/gu)].map(m => ({ w: m[0], i: m.index }));
 const termKey = w => termNorm(w, true);
-const termGood = w => w.length >= 4 && !TERM_STOP.has(w.toLowerCase());
-// Pick the missing piece of one side: the whole side if it's 1-2 words, otherwise one meaningful word.
+const termGood = w => w.length >= 4 && !TERM_STOP.has(w.toLowerCase()) && !/^\d+$/.test(w);
+// Pick the missing piece of one side: the whole side if it's 1-2 words, otherwise one of its most meaningful words
+// (the longer content words, which tend to be the key terms) so the question actually tests something.
 function termPickGap(text){
   const words = termWords(text);
   if (words.length <= 2) return { start: 0, end: text.length, whole: true };
-  const good = words.filter(x => termGood(x.w));
+  const good = words.filter(x => termGood(x.w)).sort((a, b) => b.w.length - a.w.length).slice(0, 3);
   const pick = good.length ? good[Math.floor(Math.random() * good.length)] : words.reduce((a, b) => b.w.length > a.w.length ? b : a);
   return { start: pick.i, end: pick.i + pick.w.length, whole: false };
 }
-function termDistractors(answer, whole, side, card){
-  const pool = new Map();
-  const add = w => { const k = termKey(w); if (k && k !== termKey(answer) && !pool.has(k)) pool.set(k, w); };
-  const others = tg.cards.filter(c => c.id !== card.id);
-  if (whole) others.forEach(c => add(termClean(c[side])));
-  else others.forEach(c => termWords(termClean(c[side])).forEach(x => termGood(x.w) && add(x.w)));
-  if (pool.size < 3) others.forEach(c => termWords(termClean(c[side === 'front' ? 'back' : 'front'])).forEach(x => termGood(x.w) && add(x.w)));
-  if (pool.size < 3) others.forEach(c => { add(termClean(c.front)); add(termClean(c.back)); });
-  // prefer options of a similar length so the right one doesn't stand out
-  const ranked = [...pool.values()].sort((a, b) => Math.abs(a.length - answer.length) - Math.abs(b.length - answer.length));
-  return shuffle(ranked.slice(0, 8)).slice(0, 3);
+// A word's "shape": the ending that decides where it fits in a sentence. Decoys with the same shape read naturally
+// in the blank, so the right answer can't be spotted by grammar alone.
+function wordShape(w){
+  const x = w.toLowerCase();
+  if (/(tion|sion|ment|ness|ity|ance|ence|ship|ism)$/.test(x)) return 'noun';
+  if (/(tions|sions|ments|nesses|ities|ances|ences|ships|isms)$/.test(x)) return 'nouns';
+  if (/ing$/.test(x)) return 'ing';
+  if (/ed$/.test(x)) return 'ed';
+  if (/ly$/.test(x)) return 'ly';
+  if (/(ous|ive|ful|able|ible|less|ical)$/.test(x)) return 'adj';
+  if (/[^s]s$/.test(x)) return 'plural';
+  return 'base';
 }
+// Three decoys for a blank, drawn from the other cards. Same shape first, then similar length; never a word
+// already visible in the sentence. Shared by Terminal and the quiz.
+function pickDecoys(answer, whole, side, card, cards, sentence){
+  const key = w => termNorm(w, true), shown = new Set(termWords(sentence || '').map(x => key(x.w)));
+  const pool = new Map(), add = w => { const k = key(w); if (k && k !== key(answer) && !pool.has(k) && (whole || !shown.has(k))) pool.set(k, w); };
+  const others = cards.filter(c => c.id !== card.id), other = side === 'front' ? 'back' : 'front', clean = t => termClean(t);
+  if (whole) others.forEach(c => add(clean(c[side])));
+  else others.forEach(c => termWords(clean(c[side])).forEach(x => termGood(x.w) && add(x.w)));
+  if (pool.size < 3) others.forEach(c => termWords(clean(c[other])).forEach(x => termGood(x.w) && add(x.w)));
+  if (pool.size < 3) others.forEach(c => { add(clean(c.front)); add(clean(c.back)); });
+  const shape = wordShape(answer);
+  const score = w => (whole || wordShape(w) === shape ? 0 : 6) + Math.abs(w.length - answer.length) + Math.random() * 2;
+  return [...pool.values()].map(w => [score(w), w]).sort((a, b) => a[0] - b[0]).slice(0, 3).map(x => x[1]);
+}
+// Capital letters can give a blank away (only the answer starts a sentence, say). When the options mix
+// capitals and lower case, show them all in lower case.
+function washCase(options){
+  const first = o => o[0] === o[0].toUpperCase() && o[0] !== o[0].toLowerCase();
+  return options.every(o => first(o) === first(options[0])) ? options.slice() : options.map(o => o.toLowerCase());
+}
+const termDistractors = (answer, whole, side, card, sentence) => pickDecoys(answer, whole, side, card, tg.cards, sentence);
 GAMES.push({
   id: 'terminal', name: 'Terminal', minCards: 4,
-  desc: "Type each card's front and back as fast and accurately as you can. One word is missing; choose it from four options and type it in.",
+  desc: "Type each card's front and back as fast and accurately as you can. One word is missing; choose it from four options and type it in. Every word you type adds a second.",
   usable: deck => deck.cards.filter(c => termClean(c.front) && termClean(c.back)),
   settings: [
     { key: 'blank', label: 'Missing word from', default: 'back',
@@ -2812,7 +2892,7 @@ function termBegin(deck, cards, { blank, secs, survival }){
   stopTerminal(); show('terminal');
   tg = { deckId: deck.id, blank, secs, survival, cards, order: shuffle(cards), idx: 0, typed: '', started: false, elapsed: 0,
          tickAt: performance.now(), keys: 0, goodKeys: 0, doneChars: 0, done: 0, revealed: false, gapMiss: false,
-         lives: SURVIVAL_LIVES, hintN: 0, hintsUsed: 0,
+         lives: SURVIVAL_LIVES, hintN: 0, hintsUsed: 0, bonus: 0, wordsTyped: 0,
          missed: new Map(), history: [], alive: true, paused: false, phase: 'play', queued: [], last: 0 };
   const slug = deck.name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '') || 'deck';
   $('#termTitle').textContent = `sage@${survival ? 'survival' : 'terminal'}: ~/${slug}`;
@@ -2823,15 +2903,16 @@ function termBegin(deck, cards, { blank, secs, survival }){
   $('#terminalPaused').hidden = true; $('#terminalPause').textContent = 'Pause';
   $('#terminalHeading').textContent = survival ? 'Fill in the blank from memory' : 'Type each card, filling in the blank';
   $('#termKeys').textContent = survival
-    ? 'Type only the missing word; it moves on as soon as it\'s right. Capitals and accents don\'t matter. Tab reveals a letter for 1 life.'
-    : 'Type the whole line, filling the blank with one of the options above it. The clock starts on your first keystroke. Tab reveals the answer, Esc pauses.';
+    ? 'Type only the missing word; it moves on as soon as it\'s right. Capitals and accents don\'t matter. Tab or the hint button reveals a letter for 1 life.'
+    : 'Type the whole line, filling the blank with one of the options above it. Every word you type adds a second to the clock. Tab or the hint button shows the answer, Esc pauses.';
+  $('#termHintBtn').textContent = survival ? 'Reveal a letter (costs 1 life)' : 'Show the answer';
   termNext(true); termStatus();
   if (!survival) tg.timer = setInterval(() => {
     if (!tg) return;
     const now = performance.now();
     if (tg.started && !tg.paused && tg.phase === 'play') tg.elapsed += now - tg.tickAt;
     tg.tickAt = now;
-    if (tg.phase === 'play' && tg.elapsed >= tg.secs * 1000) return termEnd();
+    if (tg.phase === 'play' && tg.elapsed >= tg.secs * 1000 + tg.bonus) return termEnd();
     termStatus();
   }, 100);
   $('#termInput').value = ''; $('#termInput').focus();
@@ -2841,15 +2922,15 @@ function termNext(first){
   const c = tg.order[tg.idx++], front = termClean(c.front), back = termClean(c.back), sep = ': ';
   const side = tg.blank === 'either' ? (Math.random() < 0.5 ? 'front' : 'back') : tg.blank;
   const gap = termPickGap(side === 'front' ? front : back), offset = side === 'front' ? 0 : front.length + sep.length;
-  tg.card = c; tg.typed = ''; tg.guess = ''; tg.revealed = false; tg.gapMiss = false; tg.hintN = 0;
+  tg.card = c; tg.typed = ''; tg.guess = ''; tg.revealed = false; tg.gapMiss = false; tg.hintN = 0; tg.lineWords = 0;
   tg.target = front + sep + back; tg.frontLen = front.length;
   tg.gap = { start: gap.start + offset, end: gap.end + offset };
   tg.answer = tg.target.slice(tg.gap.start, tg.gap.end);
   const inp = $('#termInput'); inp.value = ''; inp.maxLength = tg.target.length + 30;   // room for a wrong guess in the blank
   if (tg.survival){ $('#termOptions').innerHTML = ''; termSurvivalHint(); }
   else {
-    tg.options = shuffle([tg.answer, ...termDistractors(tg.answer, gap.whole, side, c)]);
-    $('#termOptions').innerHTML = tg.options.map(o => `<span>[ ${esc(o)} ]</span>`).join('');
+    tg.options = shuffle([tg.answer, ...termDistractors(tg.answer, gap.whole, side, c, tg.target)]);
+    $('#termOptions').innerHTML = washCase(tg.options).map(o => `<span>[ ${esc(o)} ]</span>`).join('');
     $('#termHint').textContent = '';
   }
   termRender(); if (!first) termStatus();
@@ -2870,6 +2951,14 @@ function termSurvivalRender(){
   html += `<span class="gapbox">${inner}<span class="cur gap"> </span></span>`;
   for (let i = g.end; i < T.length; i++) html += plain(i);
   $('#termLine').innerHTML = html;
+}
+// Right/wrong colors in the blank only appear once the guess is 5 letters long, or is a complete option that's wrong,
+// or is longer than every option. Before that, colors would give away the answer letter by letter.
+const TERM_VERDICT_AT = 5;
+function termGapVerdict(buf){
+  if (!buf) return false;
+  const k = termNorm(buf, true), opts = tg.options || [];
+  return buf.length >= TERM_VERDICT_AT || opts.some(o => termNorm(o, true) === k) || buf.length > Math.max(0, ...opts.map(o => o.length));
 }
 function termRender(){
   if (tg.survival) return termSurvivalRender();
@@ -2892,12 +2981,16 @@ function termRender(){
       for (let i = g.end; i < T.length; i++) html += `<span class="todo${i < tg.frontLen ? ' f' : ''}">${esc(T[i])}</span>`;
       $('#termLine').innerHTML = html; return;
     }
-    let broken = false;                             // after the first wrong letter, the rest of the guess is wrong too
-    [...buf].forEach((c, k) => {
-      const ok = !broken && k < tg.answer.length && termNorm(c, true) === termNorm(tg.answer[k], true);
-      if (!ok) broken = true;
-      inner += `<span class="${ok ? 'ok' : 'bad'}">${esc(ok ? tg.answer[k] : c)}</span>`;
-    });
+    if (!termGapVerdict(buf)){                       // too early to say: letters stay neutral so red can't point to the answer
+      [...buf].forEach(c => { inner += `<span class="guess">${esc(c)}</span>`; });
+    } else {
+      let broken = false;                           // after the first wrong letter, the rest of the guess is wrong too
+      [...buf].forEach((c, k) => {
+        const ok = !broken && k < tg.answer.length && termNorm(c, true) === termNorm(tg.answer[k], true);
+        if (!ok) broken = true;
+        inner += `<span class="${ok ? 'ok' : 'bad'}">${esc(ok ? tg.answer[k] : c)}</span>`;
+      });
+    }
     if (typed.length >= g.start) inner += '<span class="cur gap"> </span>';
   }
   html += `<span class="gapbox${gapDone ? ' done' : ''}">${inner}</span>`;
@@ -2912,7 +3005,7 @@ function termStatus(){
     $('#termStatus').textContent = `[ ${hearts} ]  cards ${tg.done}  hints ${tg.hintsUsed}`;
     return;
   }
-  const left = Math.max(0, tg.secs * 1000 - tg.elapsed) / 1000, mins = tg.elapsed / 60000;
+  const left = Math.max(0, tg.secs * 1000 + tg.bonus - tg.elapsed) / 1000, mins = tg.elapsed / 60000;
   let prefix = 0; while (prefix < tg.typed.length && termMatch(prefix)) prefix++;
   const wpm = mins > 0.02 ? Math.round((tg.doneChars + prefix) / 5 / mins) : 0;
   const acc = tg.keys ? Math.round(tg.goodKeys / tg.keys * 100) : 100;
@@ -2947,11 +3040,12 @@ $('#termInput').addEventListener('input', e => {
       const k = i - tg.gap.start, sofar = val.slice(tg.gap.start, i);
       ok = k < tg.answer.length && [...sofar].every((c, j) => termNorm(c, true) === termNorm(tg.answer[j], true))
            && termNorm(val[i], true) === termNorm(tg.answer[k], true);
-      if (!ok) tg.gapMiss = true;                                           // picked the wrong option
+      if (!ok && termGapVerdict(val.slice(tg.gap.start, i + 1))) tg.gapMiss = true;   // a wrong option, once it's clearly wrong
     }
     if (ok) tg.goodKeys++;
   }
   tg.typed = val;
+  termWordBonus();
   termRender(); termStatus();
   if (tg.typed.length === tg.target.length && [...tg.target].every((_, i) => termMatch(i))){
     tg.doneChars += tg.target.length + 1;           // +1 counts the "space" between lines, like normal WPM
@@ -2959,6 +3053,15 @@ $('#termInput').addEventListener('input', e => {
     termFinishLine();
   }
 });
+// Every correctly typed word adds a second to the clock, so skilled typists can keep going well past the starting time.
+const TERM_WORD_BONUS = 1000;
+function termWordBonus(){
+  if (tg.survival) return;
+  let p = 0; while (p < tg.typed.length && termMatch(p)) p++;       // length of the correct part so far
+  const done = p === tg.target.length;
+  const words = (tg.target.slice(0, p).match(/\S\s/g) || []).length + (done ? 1 : 0);   // a word counts once the space after it is typed
+  if (words > tg.lineWords){ const n = words - tg.lineWords; tg.lineWords = words; tg.bonus += n * TERM_WORD_BONUS; tg.wordsTyped += n; }
+}
 function termFinishLine(){
   if (tg.revealed || tg.gapMiss || tg.hintN) tg.missed.set(tg.card.id, tg.card);
   termLog(); termNext(false);
@@ -2966,13 +3069,20 @@ function termFinishLine(){
 $('#termInput').addEventListener('paste', e => e.preventDefault());
 $('#termInput').addEventListener('keydown', e => {
   if (!tg || tg.paused || e.key !== 'Tab') return;
-  e.preventDefault();
+  e.preventDefault(); termHintPressed();
+});
+// Hint: Tab, or the button under the terminal (phones and tablets have no Tab key).
+function termHintPressed(){
+  if (!tg || tg.paused || tg.phase !== 'play') return;
   if (tg.survival) return termBuyLetter();
   if (!tg.revealed){ tg.revealed = true; termRender(); $('#termHint').textContent = `The missing word is "${tg.answer}".`; }
-});
+}
+$('#termHintBtn').addEventListener('pointerdown', e => e.preventDefault());   // keep the keyboard open on phones
+$('#termHintBtn').onclick = () => { termHintPressed(); $('#termInput').focus(); };
 function termSurvivalHint(){
-  $('#termHint').textContent = tg.lives > 1 ? 'Type the missing word. Stuck? Tab reveals the next letter for 1 life.'
-    : 'Last life. Tab still reveals a letter, but it ends the game.';
+  $('#termHint').textContent = tg.lives > 1 ? 'Type the missing word. Stuck? Press Tab or the hint button to reveal the next letter for 1 life.'
+    : 'Last life. A hint still reveals a letter, but it ends the game.';
+  $('#termHintBtn').textContent = tg.lives > 1 ? 'Reveal a letter (costs 1 life)' : 'Reveal a letter (ends the game)';
 }
 function termSurvivalInput(input){
   if (!tg.started) tg.started = true;
@@ -3006,7 +3116,7 @@ function termEnd(reason){
   if (tg.survival){ tg.missed.set(tg.card.id, tg.card); return later(tg, termSurvivalResults, 1600); }
   later(tg, () => {
     const g = tg, deck = getDeck(g.deckId), store = gameStore(deck, 'terminal');
-    const wpm = Math.round(g.doneChars / 5 / (g.secs / 60)), acc = g.keys ? Math.round(g.goodKeys / g.keys * 100) : 0;
+    const wpm = Math.round(g.doneChars / 5 / Math.max(1 / 60, g.elapsed / 60000)), acc = g.keys ? Math.round(g.goodKeys / g.keys * 100) : 0;
     const key = `${g.blank}-${g.secs}`, prev = store.best[key] || 0, isBest = wpm > prev;
     if (isBest){ store.best[key] = wpm; save(); }
     const missed = [...g.missed.values()].slice(0, 10);
@@ -3015,7 +3125,7 @@ function termEnd(reason){
       title: isBest && prev ? 'New best speed!' : 'Time is up',
       msg: (isBest && prev ? `<span class="new-best">You beat your old record of ${prev} wpm.</span>`
           : prev ? `Your best with these settings is ${prev} wpm.` : 'First run with these settings. Play again to beat it.') + list,
-      stats: [['Words per minute', String(wpm)], ['Accuracy', acc + '%'], ['Cards typed', String(g.done)]]
+      stats: [['Words per minute', String(wpm)], ['Accuracy', acc + '%'], ['Cards typed', String(g.done)], ['Time played', fmtClock(g.elapsed)]]
     });
   }, 900);
 }
@@ -3079,16 +3189,8 @@ $('#qsStart').onclick = () => {
 };
 
 // Word list for a fill-in question: the right word plus 3 from the deck, preferring ones of a similar length.
-function quizWordBank(expected, whole, side, card, all){
-  const pool = new Map(), add = w => { const k = qKey(w); if (k && k !== qKey(expected) && !pool.has(k)) pool.set(k, w); };
-  const others = all.filter(c => c.id !== card.id), other = side === 'front' ? 'back' : 'front';
-  if (whole) others.forEach(c => add(qClean(c[side])));
-  else others.forEach(c => termWords(qClean(c[side])).forEach(x => termGood(x.w) && add(x.w)));
-  if (pool.size < 3) others.forEach(c => termWords(qClean(c[other])).forEach(x => termGood(x.w) && add(x.w)));
-  if (pool.size < 3) others.forEach(c => { add(qClean(c.front)); add(qClean(c.back)); });
-  const ranked = [...pool.values()].sort((a, b) => Math.abs(a.length - expected.length) - Math.abs(b.length - expected.length));
-  return shuffle([expected, ...shuffle(ranked.slice(0, 8)).slice(0, 3)]);
-}
+// Word list for a fill-in question: the right word plus 3 decoys that fit the same spot in the sentence (see pickDecoys).
+const quizWordBank = (expected, whole, side, card, all, sentence) => shuffle([expected, ...pickDecoys(expected, whole, side, card, all, sentence)]);
 function quizBuild(deck, st, onlyCards){
   const all = quizUsable(deck);
   let pool = onlyCards ? onlyCards.slice() : all.slice();
@@ -3113,7 +3215,8 @@ function quizBuild(deck, st, onlyCards){
     if (q.type === 'fill'){
       const g = termPickGap(answer);
       q.before = answer.slice(0, g.start); q.after = answer.slice(g.end); q.expected = answer.slice(g.start, g.end);
-      q.options = quizWordBank(q.expected, g.whole, side, c, all); q.right = q.options.indexOf(q.expected);
+      q.options = quizWordBank(q.expected, g.whole, side, c, all, answer); q.right = q.options.indexOf(q.expected);
+      q.labels = washCase(q.options);           // capitals mustn't hint at the answer
     }
     return q;
   });
@@ -3138,12 +3241,12 @@ function quizRenderQ(i){
   let body = `<p class="pq-text">${esc(q.prompt)}</p>`;
   if (q.type === 'tf') body += `<p class="pq-claim"><span class="lbl">Answer:</span> ${esc(q.candidate)}</p>`;
   if (q.type === 'fill'){
-    const chosen = q.user !== null ? q.options[q.user] : '';
+    const chosen = q.user === null ? '' : done && q.correct ? q.options[q.user] : (q.labels || q.options)[q.user];
     body += `<p class="pq-claim">${esc(q.before)}<span class="pq-blank">${esc(chosen)}</span>${esc(q.after)}</p>`;
   }
   body += `<div class="pq-opts${q.type === 'mc' ? '' : ' row'}">` + q.options.map((o, k) => {
     const cls = ['pq-opt', q.user === k ? 'sel' : '', done && k === q.right ? 'is-answer' : '', done && q.user === k && !q.correct ? 'is-wrong' : ''].join(' ');
-    return `<button class="${cls.trim()}" data-q="${i}" data-o="${k}" ${done ? 'disabled' : ''}><span class="bubble">${letters[k]}</span><span class="txt">${esc(o)}</span></button>`;
+    return `<button class="${cls.trim()}" data-q="${i}" data-o="${k}" ${done ? 'disabled' : ''}><span class="bubble">${letters[k]}</span><span class="txt">${esc((q.labels || q.options)[k])}</span></button>`;
   }).join('') + '</div>';
   if (done){
     const correctText = q.type === 'tf' ? (q.truth ? 'True' : `False. The matching answer is "${q.answer}"`) : q.options[q.right];
@@ -3364,27 +3467,29 @@ $('#edList').addEventListener('dragend', () => {
 
 /* ----- Game: Lightning -----
    A thunderstorm true-or-false sprint: is this answer the right match for the prompt? */
-const LT_PENALTY = 2, LT_STREAK_STEP = 5, LT_MAX_MULT = 4;
+// Every right answer adds time and every wrong one takes it away, so good players can keep a storm going for a long time.
+// After 5 minutes the reward shrinks so games still end eventually.
+const LT_PENALTY = 5, LT_BONUS = 5, LT_BONUS_LATE = 3, LT_LATE_AFTER = 300, LT_STREAK_STEP = 5, LT_MAX_MULT = 4;
 let lt = null;
 function stopLightning(){ if (lt){ lt.alive = false; clearInterval(lt.timer); lt = null; } }
 GAMES.push({
   id: 'lightning', name: 'Lightning', minCards: 2,
-  desc: 'A prompt and an answer flash up. Decide true or false as fast as you can. Streaks multiply your points; mistakes cost time.',
+  desc: 'A prompt and an answer flash up. Decide true or false as fast as you can. Right answers add 5 seconds, wrong ones take 5 away, and streaks multiply your points.',
   usable: deck => matchPick(deck, Infinity),
-  settings: [PROMPT_SETTING, { key: 'secs', label: 'Time', default: 60, options: () => [30, 60, 90].map(x => ({ value: x, label: `${x} seconds` })) }],
-  summary(deck){ return `${promptLabel(gameSetting(deck, this, 'dir'))}, ${gameSetting(deck, this, 'secs')} seconds`; },
+  settings: [PROMPT_SETTING, { key: 'secs', label: 'Starting time', default: 60, options: () => [30, 60, 90].map(x => ({ value: x, label: `${x} seconds` })) }],
+  summary(deck){ return `${promptLabel(gameSetting(deck, this, 'dir'))}, starts with ${gameSetting(deck, this, 'secs')} seconds`; },
   start(deck){
     const dir = gameSetting(deck, this, 'dir'), secs = gameSetting(deck, this, 'secs');
     stopLightning(); show('lightning');
     const cards = matchPick(deck, Infinity);
-    lt = { deckId: deck.id, dir, secs, cards, order: shuffle(cards), idx: 0, timeLeft: secs, score: 0, streak: 0, bestStreak: 0,
+    lt = { deckId: deck.id, dir, secs, cards, order: shuffle(cards), idx: 0, timeLeft: secs, elapsed: 0, score: 0, streak: 0, bestStreak: 0,
            correct: 0, total: 0, missed: new Map(), alive: true, paused: false, phase: 'play', queued: [], last: 0, tickAt: performance.now() };
     $('#lightningPaused').hidden = true; $('#lightningPause').textContent = 'Pause';
     ltHud(); ltNext();
     lt.timer = setInterval(() => {
       if (!lt) return;
       const now = performance.now();
-      if (!lt.paused && lt.phase !== 'over') lt.timeLeft -= (now - lt.tickAt) / 1000;
+      if (!lt.paused && lt.phase !== 'over'){ lt.timeLeft -= (now - lt.tickAt) / 1000; lt.elapsed += (now - lt.tickAt) / 1000; }
       lt.tickAt = now;
       if (lt.phase !== 'over' && lt.timeLeft <= 0){ lt.timeLeft = 0; ltHud(); return ltEnd(); }
       ltHud();
@@ -3426,6 +3531,10 @@ function ltBolt(){                                   // a fresh jagged bolt from
   svg.innerHTML = `<path d="${d}"/><path class="branch" d="${branch}"/>`;
   svg.classList.remove('on'); void svg.offsetWidth; svg.classList.add('on');
 }
+function ltNote(text){                                // quiet time reminder, without the sky flash
+  const b = $('#ltBonus'); b.textContent = text; b.classList.remove('bad'); b.classList.add('show');
+  clearTimeout(b._t); b._t = setTimeout(() => b.classList.remove('show'), 600);
+}
 function ltAnswer(said){
   if (!lt || lt.paused || lt.phase !== 'play') return;
   lt.phase = 'between'; lt.total++;
@@ -3433,9 +3542,11 @@ function ltAnswer(said){
   if (said === lt.truth){
     lt.streak++; lt.bestStreak = Math.max(lt.bestStreak, lt.streak); lt.correct++;
     lt.score += 100 * ltMult();
+    const gain = lt.elapsed >= LT_LATE_AFTER ? LT_BONUS_LATE : LT_BONUS;
+    lt.timeLeft += gain;
     card.classList.add('zap'); ltBolt();
-    if (lt.streak % LT_STREAK_STEP === 0 && ltMult() <= LT_MAX_MULT) ltFlash(`${lt.streak} in a row! \u00d7${ltMult()} points`);
-    else $('#ltFlash').classList.remove('on');
+    if (lt.streak % LT_STREAK_STEP === 0 && ltMult() <= LT_MAX_MULT) ltFlash(`${lt.streak} in a row! \u00d7${ltMult()} points, +${gain}s`);
+    else ltNote(`+${gain}s`);
     ltHud(); later(lt, ltNext, 260);
   } else {
     lt.streak = 0; lt.timeLeft = Math.max(0, lt.timeLeft - LT_PENALTY); lt.missed.set(lt.card.id, lt.card);
@@ -3459,7 +3570,7 @@ function ltEnd(){
       title: isBest && prev ? 'New high score!' : "Time's up",
       msg: (isBest && prev ? `<span class="new-best">You beat your old record of ${prev}.</span>`
           : prev ? `Your high score with these settings is ${prev}.` : 'First game with these settings. Play again to beat it.') + list,
-      stats: [['Score', String(g.score)], ['Correct', `${g.correct}/${g.total}`], ['Best streak', String(g.bestStreak)]]
+      stats: [['Score', String(g.score)], ['Correct', `${g.correct}/${g.total}`], ['Best streak', String(g.bestStreak)], ['Time survived', fmtClock(g.elapsed * 1000)]]
     });
   }, 1000);
 }
@@ -3477,7 +3588,12 @@ $('#lightningQuit').onclick = () => { stopLightning(); openGames(gameDeckId); };
    with the user's own API key, then offers to import the CSV the AI writes. Nothing is sent until the
    user presses "Create study guide". The key is kept in this browser only and is never part of backups. */
 const AI_STORE = 'sage-ai-v1';
-const AI_DEFAULT_MODELS = { gemini: 'gemini-3.5-flash', anthropic: 'claude-sonnet-5-5', openai: '' };
+// Gemini 3.5 Flash-Lite: stable, reads images and PDFs, up to 65k output tokens, and a much bigger free daily
+// allowance than the full Flash models (about 500 requests a day versus about 20).
+const AI_DEFAULT_MODELS = { gemini: 'gemini-3.5-flash-lite', anthropic: 'claude-sonnet-5-5', openai: '' };
+// When Google is overloaded (it answers "503"), SAGE retries, then tries these models in turn. Unknown names are skipped.
+const GEMINI_BACKUPS = ['gemini-3.5-flash-lite', 'gemini-3.5-flash', 'gemini-3.1-flash-lite'];
+const AI_BUSY = s => [500, 502, 503, 504, 529].includes(s);   // temporary trouble on the provider's side
 const AI_MAX_FILE_MB = 20, AI_MAX_FILES = 10;
 const AI_DEFAULT_PROMPT = `You are SAGE's study guide: a friendly, accurate tutor built into a flashcard app.
 
@@ -3511,7 +3627,7 @@ function aiSave(){
 function openAI(){
   const cfg = aiLoad();
   $('#aiProvider').value = cfg.provider || 'gemini';
-  if (cfg.model === 'gemini-2.5-flash') cfg.model = AI_DEFAULT_MODELS.gemini;   // retired model saved by an earlier version
+  if (['gemini-2.5-flash', 'gemini-3.5-flash'].includes(cfg.model)) cfg.model = AI_DEFAULT_MODELS.gemini;   // old defaults saved by earlier versions
   $('#aiModel').value = cfg.model ?? AI_DEFAULT_MODELS[$('#aiProvider').value];
   $('#aiBase').value = cfg.base || '';
   $('#aiPrompt').value = cfg.prompt || AI_DEFAULT_PROMPT;
@@ -3653,18 +3769,20 @@ $('#aiRun').onclick = async () => {
                 deck ? aiDeckStats(deck) : ''].filter(Boolean).join('\n\n');
   aiAbort = new AbortController();
   $('#aiRun').disabled = true; $('#aiCancel').hidden = false; $('#aiOut').hidden = true; $('#aiOutActions').hidden = true;
-  const started = Date.now(), tick = setInterval(() => aiStatus(`Working on it... ${Math.round((Date.now() - started) / 1000)}s`), 500);
-  aiStatus('Working on it...');
+  const started = Date.now();
+  aiPhase = 'Working on it...'; aiStatus(aiPhase);
+  const tick = setInterval(() => aiStatus(`${aiPhase} ${Math.round((Date.now() - started) / 1000)}s`), 500);
   try {
-    const call = { gemini: aiCallGemini, anthropic: aiCallAnthropic, openai: aiCallOpenAI }[cfg.provider];
-    const out = await call(cfg, $('#aiPrompt').value.trim() || AI_DEFAULT_PROMPT, text, aiFiles, aiAbort.signal);
+    const out = await aiCallWithRetry(cfg, $('#aiPrompt').value.trim() || AI_DEFAULT_PROMPT, text, aiFiles, aiAbort.signal);
     aiShowResult(out.text);
-    aiStatus(out.cut ? 'The response hit the length limit and may be cut off. Try sending less material at once.' : 'Done.', out.cut);
+    const switched = out.model !== cfg.model ? ` (answered by ${out.model} because ${cfg.model} was busy or unavailable)` : '';
+    aiStatus(out.cut ? 'The response hit the length limit and may be cut off. Try sending less material at once.' : `Done${switched}.`, out.cut);
   } catch (err){
     if (err.name === 'AbortError') aiStatus('Cancelled.');
     else if (err.status === 401 || err.status === 403) aiStatus('The API key was rejected. Check that it is correct and active.', true);
     else if (err.status === 404) aiStatus("The model name wasn't found. It may have been renamed or retired; check your provider's model list and update the Model box.", true);
     else if (err.status === 429) aiStatus('The provider says you are sending too many requests or are out of credit. Wait a bit or check your account.', true);
+    else if (AI_BUSY(err.status)) aiStatus('The AI service is overloaded right now, even after several tries. Please try again in a few minutes.', true);
     else if (err.status) aiStatus(`The provider returned an error: ${err.message}`, true);
     else aiStatus("Couldn't reach the AI provider. Check your internet connection and the API address.", true);
   } finally {
@@ -3672,6 +3790,35 @@ $('#aiRun').onclick = async () => {
   }
 };
 $('#aiCancel').onclick = () => aiAbort && aiAbort.abort();
+let aiPhase = '';
+const aiWait = (ms, signal) => new Promise((resolve, reject) => {
+  const t = setTimeout(resolve, ms);
+  signal.addEventListener('abort', () => { clearTimeout(t); reject(new DOMException('Cancelled', 'AbortError')); }, { once: true });
+});
+// Busy providers are common, so: retry the same model twice with a short wait, then (for Gemini) move on to backup models.
+// Key problems and bad requests stop right away, since retrying can't fix them.
+async function aiCallWithRetry(cfg, prompt, text, files, signal){
+  const call = { gemini: aiCallGemini, anthropic: aiCallAnthropic, openai: aiCallOpenAI }[cfg.provider];
+  const models = cfg.provider === 'gemini' ? [...new Set([cfg.model, ...GEMINI_BACKUPS])] : [cfg.model];
+  let lastErr;
+  for (let m = 0; m < models.length; m++){
+    for (let attempt = 1; attempt <= 3; attempt++){
+      try { const out = await call({ ...cfg, model: models[m] }, prompt, text, files, signal); return { ...out, model: models[m] }; }
+      catch (err){
+        if (err.name === 'AbortError') throw err;
+        if (m === 0 || err.status !== 404) lastErr = err;      // a missing backup model isn't the error worth reporting
+        if (AI_BUSY(err.status) && attempt < 3){
+          aiPhase = `The AI service is busy. Trying again (${attempt + 1} of 3)...`;
+          await aiWait(attempt * 2000, signal); continue;
+        }
+        if (!(AI_BUSY(err.status) || err.status === 429 || err.status === 404)) throw err;
+        break;                                                   // try the next model, if any
+      }
+    }
+    if (m < models.length - 1) aiPhase = `${models[m]} is unavailable. Trying ${models[m + 1]}...`;
+  }
+  throw lastErr;
+}
 // Pulls the CSV out of an AI reply: the ```csv block if there is one, otherwise any code block.
 function extractCSV(text){
   const m = text.match(/```csv[^\n]*\n([\s\S]*?)```/i) || text.match(/```[^\n]*\n([\s\S]*?)```/);
@@ -3773,12 +3920,7 @@ $('#deleteDeck').onclick = async () => {
 /* ===================== Backup ===================== */
 $('#backupBtn').onclick = () => $('#backupDlg').showModal();
 $('#closeBackup').onclick = () => $('#backupDlg').close();
-$('#exportBtn').onclick = () => {
-  const blob = new Blob([JSON.stringify({ app: APP_NAME, exported: new Date().toISOString(), ...db }, null, 1)], { type: 'application/json' });
-  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
-  a.download = `${APP_NAME.toLowerCase()}-backup-${new Date().toISOString().slice(0,10)}.json`;
-  document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
-};
+$('#exportBtn').onclick = exportBackup;          // defined in data-safety
 $('#restoreIn').onchange = e => {
   const f = e.target.files[0]; if (!f) return;
   if (f.size > 50 * 1048576){ toast('That file is too large to be a SAGE backup.'); e.target.value = ''; return; }
@@ -3805,6 +3947,173 @@ $('#sampleBtn').onclick = () => {
   db.decks.push(d); save(); renderHome();
 };
 
+/* ===================== Data safety =====================
+   SAGE has no accounts, so the browser is the database. This module makes losing data unlikely and recoverable:
+     1. Storage protection: asks the browser not to clear SAGE's data on its own when space runs low.
+     2. Autosave to a file (Chrome and Edge): the user picks a file once and SAGE keeps it up to date.
+     3. Backup reminder: if nothing has been saved outside the browser for a week, a small note offers a one-click backup.
+   Preferences for this (and the donate link) live under their own storage key, never inside backups. */
+const PREFS_KEY = 'sage-prefs-v1';
+const prefs = (() => { try { return JSON.parse(localStorage.getItem(PREFS_KEY)) || {}; } catch { return {}; } })();
+function savePrefs(){ try { localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)); } catch {} }
+const DAY_MS = 864e5, NUDGE_AFTER_DAYS = 7, NUDGE_SNOOZE_DAYS = 3;
+const fsSupported = typeof window.showSaveFilePicker === 'function' && typeof window.showOpenFilePicker === 'function';
+let autoHandle = null, autoState = 'off', autoTimer = null, autoName = '';
+const ago = t => {
+  const m = Math.round((Date.now() - t) / 60000);
+  if (m < 1) return 'just now'; if (m < 60) return `${m} minute${m === 1 ? '' : 's'} ago`;
+  const h = Math.round(m / 60); if (h < 24) return `${h} hour${h === 1 ? '' : 's'} ago`;
+  return plural(Math.round(h / 24), 'day') + ' ago';
+};
+
+// Called after every save.
+function afterSave(){
+  if (!db.decks.length) return;
+  const now = Date.now();
+  if (!prefs.firstUse) prefs.firstUse = now;
+  prefs.lastChange = now; savePrefs();
+  askPersist(); autoSoon();
+}
+
+// ----- 1. storage protection -----
+async function askPersist(){
+  if (prefs.persistAsked || !navigator.storage?.persist) return;
+  prefs.persistAsked = true; savePrefs();
+  try { prefs.persisted = await navigator.storage.persist(); } catch { prefs.persisted = false; }
+  savePrefs();
+}
+
+// ----- backup file -----
+const backupData = () => ({ app: APP_NAME, version: APP_VERSION, exported: new Date().toISOString(), ...db });
+function exportBackup(){
+  const blob = new Blob([JSON.stringify(backupData(), null, 1)], { type: 'application/json' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = `${APP_NAME.toLowerCase()}-backup-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.append(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  prefs.lastBackup = Date.now(); savePrefs(); renderBackupNudge(); renderBackupStatus();
+}
+
+// ----- 2. autosave to a file -----
+// The chosen file's handle is kept in IndexedDB so SAGE can find it again next time.
+function handleStore(op, value){
+  return new Promise((resolve, reject) => {
+    const open = indexedDB.open('sage-files', 1);
+    open.onupgradeneeded = () => open.result.createObjectStore('handles');
+    open.onerror = () => reject(open.error);
+    open.onsuccess = () => {
+      try {
+        const store = open.result.transaction('handles', op === 'get' ? 'readonly' : 'readwrite').objectStore('handles');
+        const req = op === 'get' ? store.get('autosave') : op === 'delete' ? store.delete('autosave') : store.put(value, 'autosave');
+        req.onsuccess = () => resolve(req.result); req.onerror = () => reject(req.error);
+      } catch (e){ reject(e); }                   // e.g. a handle the browser can't store
+    };
+  });
+}
+const FILE_TYPES = [{ description: 'SAGE save file', accept: { 'application/json': ['.json'] } }];
+async function autoInit(){
+  if (!fsSupported) return renderAuto();
+  try { autoHandle = await handleStore('get'); } catch { autoHandle = null; }
+  if (autoHandle){
+    autoName = autoHandle.name;
+    try { autoState = (await autoHandle.queryPermission({ mode: 'readwrite' })) === 'granted' ? 'on' : 'paused'; }
+    catch { autoState = 'paused'; }
+  }
+  renderAuto(); renderBackupNudge();
+}
+async function autoUse(handle){
+  autoHandle = handle; autoName = handle.name; autoState = 'on';
+  try { await handleStore('put', handle); } catch { /* still works until SAGE is closed */ }
+  await autoWrite();
+}
+async function autoWrite(){
+  clearTimeout(autoTimer); autoTimer = null;
+  if (autoState !== 'on' || !autoHandle) return;
+  try {
+    const out = await autoHandle.createWritable();
+    await out.write(JSON.stringify(backupData(), null, 1)); await out.close();
+    prefs.lastBackup = prefs.autoLast = Date.now(); savePrefs();
+  } catch (e){
+    autoState = e && e.name === 'NotAllowedError' ? 'paused' : 'error';
+  }
+  renderAuto(); renderBackupNudge();
+}
+function autoSoon(){ if (autoState === 'on'){ clearTimeout(autoTimer); autoTimer = setTimeout(autoWrite, 1500); } }
+document.addEventListener('visibilitychange', () => { if (document.hidden && autoTimer) autoWrite(); });   // save before the tab goes away
+
+$('#autoChoose').onclick = async () => {
+  try { await autoUse(await window.showSaveFilePicker({ suggestedName: 'SAGE decks.json', types: FILE_TYPES })); toast('Autosave is on'); }
+  catch (e){ if (e.name !== 'AbortError') toast("Couldn't use that file. Try another location."); }
+};
+$('#autoOpen').onclick = async () => {        // e.g. on a new computer: load the decks from an existing save file, then keep saving to it
+  let handle;
+  try { [handle] = await window.showOpenFilePicker({ types: FILE_TYPES }); } catch { return; }
+  try {
+    const data = JSON.parse(await (await handle.getFile()).text());
+    if (!data || !Array.isArray(data.decks)) throw 0;
+    const clean = cleanDb(data);
+    if (db.decks.length && !await askConfirm('Use this save file?', `Your current decks will be replaced with the ${clean.decks.length} deck(s) in this file, and SAGE will keep it up to date.`, 'Use this file')) return;
+    if ((await handle.requestPermission({ mode: 'readwrite' })) !== 'granted') return toast('SAGE needs permission to save to that file.');
+    db = clean; save(); renderHome(); await autoUse(handle); toast('Decks loaded. Autosave is on');
+  } catch { toast("That file isn't a SAGE save file."); }
+};
+$('#autoReconnect').onclick = async () => {
+  try { if ((await autoHandle.requestPermission({ mode: 'readwrite' })) === 'granted'){ autoState = 'on'; await autoWrite(); } } catch {}
+  renderAuto(); renderBackupNudge();
+};
+$('#autoStop').onclick = async () => {
+  try { await handleStore('delete'); } catch {}
+  autoHandle = null; autoState = 'off'; autoName = '';
+  renderAuto(); renderBackupNudge(); toast('Autosave is off. The file itself was not deleted.');
+};
+function renderAuto(){
+  renderBackupStatus();
+  $('#autoBox').hidden = !fsSupported;
+  const status = {
+    off: 'Pick a file once, such as in your Documents folder, and SAGE keeps it up to date every time you study. Your decks are then safe even if browser data is cleared, and the file works as a backup on any computer.',
+    on: `Saving to "${autoName}"${prefs.autoLast ? `, last saved ${ago(prefs.autoLast)}` : ''}.`,
+    paused: `Autosave to "${autoName}" is paused until you allow it again. Browsers ask for this after a restart.`,
+    error: `Couldn't save to "${autoName}". It may have been moved or deleted. Choose a save file again.`
+  }[autoState];
+  $('#autoStatus').textContent = status;
+  $('#autoChoose').hidden = autoState === 'on' || autoState === 'paused';
+  $('#autoOpen').hidden = autoState === 'on' || autoState === 'paused';
+  $('#autoReconnect').hidden = autoState !== 'paused';
+  $('#autoStop').hidden = autoState === 'off';
+  $('#autoChoose').textContent = autoState === 'error' ? 'Choose a save file again' : 'Choose a save file';
+}
+function renderBackupStatus(){
+  $('#backupStatus').textContent = (prefs.lastBackup ? `Last saved outside the browser ${ago(prefs.lastBackup)}. ` : 'No backup saved yet. ') +
+    'A backup file also moves your decks to another computer or browser.' + (fsSupported ? '' : ' (Chrome and Edge can also autosave to a file.)');
+  $('#persistStatus').textContent = prefs.persisted ? 'Storage protection is on: this browser won\u2019t clear SAGE\u2019s data on its own when space runs low.'
+    : prefs.persistAsked ? 'Storage protection wasn\u2019t granted by this browser, so backups matter even more.' : '';
+}
+$('#backupBtn').addEventListener('click', () => { renderAuto(); renderBackupStatus(); });
+
+// ----- 3. backup reminder -----
+function nudgeReason(){
+  if (!db.decks.length) return null;
+  if (autoState === 'paused') return 'paused';
+  if (autoState === 'on') return null;
+  const now = Date.now(), since = prefs.lastBackup || prefs.firstUse;
+  if (!since || now < (prefs.snoozeUntil || 0)) return null;
+  if (prefs.lastBackup && (prefs.lastChange || 0) <= prefs.lastBackup) return null;   // nothing new since the last backup
+  return now - since > NUDGE_AFTER_DAYS * DAY_MS ? 'old' : null;
+}
+function renderBackupNudge(){
+  const why = nudgeReason(), box = $('#backupNudge');
+  box.hidden = !why; if (!why) return;
+  if (why === 'paused'){
+    $('#nudgeMsg').textContent = `Autosave to "${autoName}" is paused. Allow it again to keep your decks safe.`;
+    $('#nudgeAction').textContent = 'Reconnect';
+  } else {
+    $('#nudgeMsg').textContent = (prefs.lastBackup ? `Your last backup was ${ago(prefs.lastBackup)}.` : "You haven't saved a backup yet.") +
+      ' A backup keeps your decks safe if browser data gets cleared.';
+    $('#nudgeAction').textContent = 'Save a backup';
+  }
+}
+$('#nudgeAction').onclick = () => { if (nudgeReason() === 'paused') $('#autoReconnect').click(); else exportBackup(); };
+$('#nudgeLater').onclick = () => { prefs.snoozeUntil = Date.now() + NUDGE_SNOOZE_DAYS * DAY_MS; savePrefs(); renderBackupNudge(); };
+autoInit();
 /* ===================== Events ===================== */
 document.addEventListener('click', e => {
   const t = e.target.closest('[data-act],[data-study],[data-opts],[data-games],[data-play],[data-quiz]'); if (!t) return;
@@ -3842,7 +4151,8 @@ document.title = APP_NAME;
 const favicon = document.querySelector('link[rel="icon"]');
 if (favicon) $('#brandLeaf').src = favicon.href; else $('#brandLeaf').remove();   // header logo reuses the favicon
 /* Minimal QR code generator (byte mode, error correction level M), drawn as SVG.
-   Follows the QR Code spec (ISO/IEC 18004); structure adapted from Project Nayuki's public-domain-style reference design. */
+   Follows the QR Code spec (ISO/IEC 18004). The structure of the encoder follows Project Nayuki's
+   QR Code generator library (MIT License): https://www.nayuki.io/page/qr-code-generator-library */
 const QR = (() => {
   const ECC_PER_BLOCK = [-1,10,16,26,18,24,16,18,22,22,26,30,22,22,24,24,28,28,26,26,26,26,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28,28];
   const NUM_BLOCKS = [-1,1,1,1,2,2,4,4,4,5,5,5,8,9,9,10,10,11,13,14,16,17,17,18,20,21,23,25,26,28,29,31,33,35,37,38,40,43,45,47,49];
@@ -3966,9 +4276,6 @@ const QR = (() => {
 })();
 
 // ----- donate link and footer -----
-const PREFS_KEY = 'sage-prefs-v1';
-const prefs = (() => { try { return JSON.parse(localStorage.getItem(PREFS_KEY)) || {}; } catch { return {}; } })();
-const savePrefs = () => { try { localStorage.setItem(PREFS_KEY, JSON.stringify(prefs)); } catch {} };
 function syncDonate(){
   const has = CRYPTO_WALLETS.some(w => w.address.trim()), visible = has && !prefs.hideDonate;
   $('#donateLink').hidden = !visible; $('#footSupport').hidden = !visible;
