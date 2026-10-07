@@ -11,10 +11,7 @@ A free, private study app in a single file: spaced-repetition flash cards, a pri
 ![Quiz](docs/quiz.png)
 -->
 
-**[Use SAGE online](#) · [Download sage.html](#)**
-<!-- Replace the two # links after publishing:
-     online:   https://tobiward.github.io/SAGE/
-     download: https://github.com/YOUR-NAME/YOUR-REPO/releases/latest/download/sage.html -->
+**[Use SAGE online](https://tobiward.github.io/SAGE/sage.html) · [Download sage.html](https://github.com/tobiward/SAGE/releases/latest/download/sage.html)**
 
 Everything in this README also appears in the app under **Help**.
 
