@@ -2,14 +2,20 @@
 
 **Study with Adaptive Gaming Environments**
 
-A free, private study app in a single file: spaced-repetition flash cards, a printable-style quiz, seven study games, and an optional AI study guide, all built from your own notes. No account, no ads, no install.
+### ▶ [Try SAGE now](https://tobiward.github.io/SAGE/sage.html)
+Opens in your web browser. Nothing to install, no account, and you don't need a GitHub account.
+
+### ⬇ [Download SAGE](https://github.com/tobiward/SAGE/releases/latest/download/sage.html)
+Saves one file, `sage.html`. Keep it on your desktop and double-click it whenever you want to study. Works offline.
+
+---
+
+A free, private study app: spaced-repetition flash cards, a printable-style quiz, seven study games, and an optional AI study guide, all built from your own notes. No ads, ever.
 
 | | |
 | --- | --- |
 | ![Studying a flash card](docs/sage_flashcard.png) | ![The games menu](docs/sage_gamepage.png) |
 | ![A quiz in progress](docs/sage_quiz.png) | ![The Scramble game](docs/sage_scramble.png) |
-
-**[Use SAGE online](https://tobiward.github.io/SAGE/sage.html) · [Download sage.html](https://github.com/tobiward/SAGE/releases/latest/download/sage.html)**
 
 Everything in this README also appears in the app under **Help**.
 
