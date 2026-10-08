@@ -1,0 +1,30 @@
+/* Deck editor */
+.ed-layout{margin-bottom:18px}
+.ed-layout h2{margin:0 0 4px;font-size:1.2rem}
+.ed-cols{overflow-x:auto;margin:12px 0}
+.ed-cols td,.ed-cols th{vertical-align:middle}
+.ed-cols td.sample{color:var(--muted);max-width:340px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ed-cols input{width:18px;height:18px;accent-color:var(--accent)}
+.ed-bar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin:0 0 8px}
+.ed-bar input[type=search]{flex:1;min-width:200px;padding:10px 14px;border:1.5px solid var(--line);border-radius:999px;background:var(--card)}
+.ed-undo{display:flex;align-items:center;gap:8px;margin:8px 0;padding:8px 8px 8px 16px;border-radius:999px;background:var(--panel);border:1px solid var(--line)}
+.ed-list{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:10px}
+.ed-row{display:grid;grid-template-columns:auto 5.5ch 1fr auto;align-items:start;gap:10px;padding:12px 14px;background:var(--panel);
+  border:1px solid var(--line);border-radius:16px}
+.ed-row.drop-before{box-shadow:0 -3px 0 var(--accent)} .ed-row.drop-after{box-shadow:0 3px 0 var(--accent)}
+.ed-row.dragging{opacity:.4}
+.ed-handle{width:22px;height:34px;margin-top:22px;border:0;border-radius:6px;cursor:grab;
+  background:radial-gradient(circle,var(--muted) 1.5px,transparent 2px) 0 0/8px 8px;opacity:.7}
+.ed-handle:hover{opacity:1}
+.ed-num{display:flex;flex-direction:column;align-items:flex-end;margin-top:28px;color:var(--muted);font-size:.85rem;font-weight:700;line-height:1.1}
+.ed-num small{font-size:.66rem;font-weight:600}
+.ed-fields{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ed-fields label{display:flex;flex-direction:column;gap:3px;font-size:.8rem;font-weight:700;color:var(--muted)}
+.ed-fields textarea{resize:none;overflow:hidden;min-height:44px;padding:9px 12px;font:inherit;font-size:1rem;font-weight:400;color:var(--ink);
+  background:var(--card);border:1.5px solid var(--line);border-radius:12px}
+.ed-fields textarea:focus{border-color:var(--accent);outline:none}
+.ed-tools{display:flex;gap:2px;margin-top:18px}
+.ed-tools .btn{padding:7px 11px}
+.ed-tag{display:inline-block;margin-left:6px;font-weight:600;color:var(--hard)}
+@media (max-width:640px){.ed-row{grid-template-columns:5.5ch 1fr}.ed-handle{display:none}.ed-fields{grid-template-columns:1fr}
+  .ed-tools{grid-column:1/-1;margin-top:0;justify-content:flex-end}.ed-num{margin-top:24px}}

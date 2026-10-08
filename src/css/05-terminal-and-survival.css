@@ -1,0 +1,37 @@
+/* Terminal (typing game) */
+.term{position:relative;border-radius:8px;overflow:hidden;cursor:text;color:#33FF66;background:#030703;border:1px solid #143D1F;
+  box-shadow:0 10px 30px #0006;font-family:"VT323",ui-monospace,Menlo,Consolas,monospace}
+.term::after{content:"";position:absolute;inset:0;z-index:2;pointer-events:none;                 /* scanlines + tube vignette */
+  background:repeating-linear-gradient(180deg,transparent 0 2px,#0000004d 2px 3px),radial-gradient(ellipse at center,transparent 60%,#000a 100%)}
+.term-bar{display:flex;align-items:center;gap:12px;padding:8px 14px;background:#0B1A0E;border-bottom:1px solid #143D1F;color:#6FCF8A;font-size:1.15rem}
+.term-bar .dots i{display:inline-block;width:10px;height:10px;margin-right:5px;border-radius:50%;background:#1E7A3A}
+.term-status{padding:8px 16px;border-bottom:1px dashed #143D1F;color:#7DFFA0;font-size:1.3rem;white-space:pre-wrap}
+.term.blurred .term-status::after{content:"   [ click here to type ]";color:#FFD27A}
+.term-body{min-height:max(380px,52vh);padding:14px 18px 24px;font-size:1.6rem;line-height:1.35;text-shadow:0 0 6px #33FF6680}
+.term-history{color:#1F8F45;font-size:1.3rem;overflow-wrap:anywhere}
+.term-history .ok{color:#33FF66}.term-history .bad{color:#FF6B6B}
+.term-prompt{margin-top:12px;color:#9DFFB8;overflow-wrap:anywhere}
+.term-line{margin-top:4px;white-space:pre-wrap;overflow-wrap:anywhere}
+.term-line .todo{color:#2E9450}
+.term-line .ok{color:#33FF66}
+.term-line .bad{color:#050505;background:#FF5555;text-shadow:none}
+.term-line .todo.f{color:#4A9CC9}                                              /* front of the card: sky blue */
+.term-line .ok.f{color:#8FDCFF;text-shadow:0 0 6px #8FDCFF80}
+.term-history .hf{color:#4A9CC9}
+/* Cursor: a near-white block, so the letter under it stays readable; it blinks to an underline, never disappears */
+.term-line .cur{color:#000;background:#F2FFF6;text-shadow:none;animation:termblink 1s steps(1) infinite}
+@keyframes termblink{50%{color:#F2FFF6;background:transparent;box-shadow:inset 0 -3px 0 #F2FFF6}}
+.term-hint{margin-top:16px;color:#1E6B36;font-size:1.2rem}
+.term-options{margin-top:12px;display:flex;flex-wrap:wrap;gap:6px 18px;color:#FFD27A;text-shadow:0 0 6px #FFD27A60}
+.term-line .gap{color:#C9A34E}
+/* The blank is one fixed-width line, so its length never gives the answer away. It grows only as you type. */
+.gapbox{display:inline-block;min-width:8ch;border-bottom:2px solid #FFD27A;line-height:1.15;white-space:pre;vertical-align:baseline}
+.gapbox.done{min-width:0;border-bottom-color:#FFD27A55}
+.term-line .guess{color:#FFD27A}                                     /* Survival: your letters, no right/wrong shown */
+.term-line .bought{color:#FF8A8A;text-shadow:0 0 6px #FF8A8A80}       /* Survival: letters revealed for a life */
+.term-line .gap.cur{color:#000;background:#FFD27A;animation-name:termblinkgap}
+@keyframes termblinkgap{50%{color:#FFD27A;background:transparent;box-shadow:inset 0 -3px 0 #FFD27A}}
+#termInput{position:absolute;left:0;bottom:0;width:1px;height:1px;padding:0;border:0;opacity:0;font-size:16px}
+@media (max-width:560px){.term-body{font-size:1.35rem;min-height:300px}.term-status{font-size:1.1rem}}
+@media (prefers-reduced-motion:reduce){.term-line .cur{animation:none}}
+@media (prefers-reduced-motion:reduce){.tile{transition:none}.tile.wrong{animation:none}}

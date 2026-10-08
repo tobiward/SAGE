@@ -1,0 +1,29 @@
+/* Matching Tiles: retro arcade cabinet */
+.arcade{position:relative;overflow:hidden;padding:16px 16px 22px;border-radius:14px;background:#07040F;color:#F4F0FF;
+  border:6px solid #1B1030;box-shadow:0 0 0 2px #3A1F66,inset 0 0 40px #000,0 14px 30px -12px #0009;font-family:"VT323",ui-monospace,Menlo,monospace}
+.arcade::after{content:"";position:absolute;inset:0;z-index:4;pointer-events:none;
+  background:repeating-linear-gradient(180deg,transparent 0 2px,#00000059 2px 3px),radial-gradient(ellipse at center,transparent 62%,#000b 100%)}
+.arcade-marquee{margin:4px 0 12px;text-align:center;font-family:"Press Start 2P",ui-monospace,monospace;font-size:clamp(.85rem,2.6vw,1.3rem);
+  letter-spacing:.06em;color:#FF4FD8;text-shadow:0 0 6px #FF4FD8,0 0 18px #FF4FD8aa}
+.arcade-hud{display:flex;justify-content:space-between;flex-wrap:wrap;gap:10px 16px;margin-bottom:16px;
+  font-family:"Press Start 2P",ui-monospace,monospace;font-size:.8rem;color:#7FE9FF;text-shadow:0 0 6px #7FE9FF80}
+.arcade-hud b{margin-left:6px;font-weight:400;color:#FFE66D;text-shadow:0 0 6px #FFE66D90}
+.arcade .penalty{margin-left:8px;font-size:.8rem;color:#FF4D6D;text-shadow:0 0 6px #FF4D6D}
+.arcade .tile{min-height:110px;padding:12px 10px;border:0;border-radius:0;background:#120A24;color:#F4F0FF;
+  font-family:"VT323",ui-monospace,monospace;font-size:1.45rem;line-height:1.1;text-shadow:0 0 4px #ffffff60;
+  box-shadow:0 0 0 2px var(--neon),0 0 12px -2px var(--neon),inset 0 0 14px -6px var(--neon)}
+.arcade .tile::before{display:none}
+.arcade .tile.long{font-size:1.1rem}
+.arcade .tile.n0{--neon:#3DF2FF} .arcade .tile.n1{--neon:#FF4FD8} .arcade .tile.n2{--neon:#FFE66D} .arcade .tile.n3{--neon:#6DFF8B}
+.arcade .tile:hover{background:#1C1036}
+.arcade .tile.sel{background:color-mix(in srgb,var(--neon) 28%,#120A24);box-shadow:0 0 0 3px #fff,0 0 22px var(--neon);animation:arcpulse .6s steps(2) infinite}
+@keyframes arcpulse{50%{box-shadow:0 0 0 3px var(--neon),0 0 10px var(--neon)}}
+.arcade .tile.wrong{--neon:#FF3355;background:#3A0A16;box-shadow:0 0 0 3px #FF3355,0 0 20px #FF3355;animation:shake .3s}
+.arcade .tile.gone{pointer-events:none;animation:arcpop .3s steps(3) forwards}
+@keyframes arcpop{0%{background:#fff;color:#000;opacity:1;transform:none}60%{opacity:.7;transform:scale(1.08)}100%{opacity:0;transform:scale(.6)}}
+.arcade-clear{position:absolute;inset:0;z-index:5;display:flex;align-items:center;justify-content:center;background:#07040Fcc;
+  font-family:"Press Start 2P",ui-monospace,monospace;font-size:clamp(1.5rem,6vw,3rem);color:#FFE66D;text-shadow:0 0 10px #FFE66D,0 0 30px #FF4FD8;
+  animation:arcblink .25s steps(2) 3}
+@keyframes arcblink{50%{opacity:0}}
+@media (prefers-reduced-motion:reduce){.arcade .tile.sel,.arcade .tile.gone,.arcade-clear{animation:none}.arcade .tile.gone{opacity:0}}
+

@@ -1,0 +1,25 @@
+/* Help */
+.help-nav{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 18px}
+.help{display:grid;gap:16px}
+.help section{scroll-margin-top:20px}
+.help h2{margin:0 0 8px;font-size:1.3rem}
+.help ol,.help ul{margin:8px 0;padding-left:22px}
+.help li{margin:4px 0}
+.help a{color:var(--accent);font-weight:700}
+.help code,.help pre{font-size:.9rem;background:var(--card);border:1px solid var(--line);border-radius:8px}
+.help code{padding:1px 6px}
+.help pre{padding:10px 14px;overflow-x:auto}
+.help .callout{padding:12px 14px;border-radius:12px;background:var(--card);border-left:4px solid var(--accent)}
+.help details{padding:10px 0;border-top:1px solid var(--line)}
+.help details summary{cursor:pointer;font-weight:700}
+.help details p,.help details ul{margin:8px 0 0}
+.help kbd{font:inherit;font-size:.82rem;font-weight:700;padding:1px 7px;border:1.5px solid var(--line);border-radius:6px;background:var(--card)}
+/* Data safety: backup reminder and backup window */
+.nudge{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 16px;margin:4px 0 18px;padding:12px 14px 12px 18px;
+  background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--hard);border-radius:14px}
+.nudge-btns{display:flex;flex-wrap:wrap;gap:6px}
+#backupDlg{width:min(560px,94vw)}
+.bk-section{margin:14px 0;padding:14px 0 4px;border-top:1px solid var(--line)}
+.bk-section h3{margin:0 0 4px;font-size:1.02rem}
+#persistStatus{font-size:.85rem}
+.toast{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translateX(-50%);background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:8px;font-weight:700;z-index:50}

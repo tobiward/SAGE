@@ -1,0 +1,59 @@
+/* Circuit */
+.circuit-board{position:relative;display:grid;grid-template-columns:1fr 84px 1fr;grid-template-rows:auto 1fr;column-gap:56px;padding:0 18px 20px;
+  border-radius:8px;overflow:hidden;background-color:#0D2A1E;
+  background-image:linear-gradient(#ffffff0b 1px,transparent 1px),linear-gradient(90deg,#ffffff0b 1px,transparent 1px);background-size:22px 22px}
+.circuit-head{grid-column:1/-1;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:12px;margin:0 -18px 18px;padding:12px 18px;
+  background:#123B2A;border-bottom:2px solid #1F5C41;color:#fff;font-weight:700}
+.circuit-head .ttl{text-align:center;font-size:1.1rem;overflow-wrap:anywhere}
+.circuit-head .right{text-align:right}
+.circuit-head b{font-variant-numeric:tabular-nums;font-size:1.15rem}
+.circuit-col{display:flex;flex-direction:column;gap:12px;position:relative;z-index:3}
+.node{position:relative;min-height:64px;padding:12px 22px;border-radius:30px;background:#F6F8FA;color:#1B2A41;border:3px solid #C9D2DA;
+  font-weight:700;font-size:1rem;line-height:1.25;text-align:center;overflow-wrap:anywhere;cursor:grab;touch-action:none;
+  transition:border-color .15s,box-shadow .15s,opacity .2s}
+.node.L{padding-right:30px} .node.R{padding-left:30px}
+.node-text{white-space:pre-wrap}
+.node:hover{border-color:#FFD84D}
+.node.sel,.node.active{border-color:#FFD84D;box-shadow:0 0 0 3px #FFD84D80}
+.node.target{border-color:#FFD84D;box-shadow:0 0 0 4px #FFD84D}
+.node.done{border-color:var(--wire);cursor:default;background:#E6EBEF;color:#46566B}
+.node.zap{border-color:#FF4D4D;box-shadow:0 0 0 4px #FF4D4D90;animation:shake .3s}
+.terminal{position:absolute;top:50%;width:20px;height:20px;margin-top:-10px;border-radius:50%;z-index:2;
+  background:radial-gradient(circle at 35% 35%,#F2D3A5,#B8742F 60%,#6E3E14);border:2px solid #4A2A0C}
+.node.L .terminal{right:-12px} .node.R .terminal{left:-12px}
+.node.done .terminal{background:radial-gradient(circle at 35% 35%,#ffffffb0,var(--wire) 60%)}
+.stub{position:absolute;top:50%;width:18px;height:4px;margin-top:-2px;background:linear-gradient(90deg,#B8742F,#E3A564)}   /* broken wire end */
+.node.L .stub{left:calc(100% + 6px)} .node.R .stub{right:calc(100% + 6px)}
+.spark{position:absolute;top:50%;width:16px;height:16px;margin-top:-8px;opacity:0;pointer-events:none;z-index:4;animation:spark 1.8s infinite}
+.node.L .spark{left:calc(100% + 18px)} .node.R .spark{right:calc(100% + 18px)}
+.spark::before,.spark::after{content:"";position:absolute;left:50%;top:50%;width:16px;height:2px;margin:-1px 0 0 -8px;border-radius:1px;
+  background:#FFF6C2;box-shadow:0 0 6px #FFC93C,0 0 2px #fff;transform:rotate(35deg)}
+.spark::after{width:11px;margin-left:-5.5px;transform:rotate(-55deg)}
+@keyframes spark{0%,62%,100%{opacity:0;scale:.4}66%{opacity:1;scale:1}70%{opacity:.2;scale:.8}74%{opacity:1;scale:1.25}80%{opacity:0;scale:.5}}
+.node.done .stub,.node.done .spark{display:none}
+.node.zap .spark{animation:none;opacity:1;scale:1.6}
+.capacitor{position:relative;z-index:3;margin-top:4px;border-radius:20px;overflow:hidden;border:2px solid #0A1A3A;box-shadow:0 8px 20px #0009;
+  background:linear-gradient(90deg,#14306A,#3768C0 32%,#2B58A8 55%,#10275A)}
+.capacitor::before{content:"";position:absolute;left:0;right:0;top:0;height:26px;z-index:2;border-bottom:2px solid #4B5158;
+  background:linear-gradient(90deg,#7D848D,#E4E8EC 38%,#9AA1A9 70%,#6A7079)}
+.capacitor::after{content:"";position:absolute;top:28px;bottom:0;right:10px;width:12px;z-index:2;opacity:.85;
+  background:repeating-linear-gradient(180deg,transparent 0 16px,#1B2F5A 16px 19px,transparent 19px 32px),#C9D6EE}
+.cap-fill{position:absolute;left:0;right:0;bottom:0;height:0;z-index:1;background:linear-gradient(0deg,#3CFF9Bd0,#9BFFD0a0);
+  box-shadow:0 -4px 14px #3CFF9B;transition:height .45s ease-out}
+.cap-label{position:absolute;left:0;right:0;top:50%;margin-top:-.7em;z-index:3;text-align:center;color:#fff;font-weight:700;text-shadow:0 1px 3px #000}
+.capacitor.full{box-shadow:0 0 0 3px #3CFF9B,0 0 30px #3CFF9B;animation:capglow .7s ease-out}
+@keyframes capglow{from{filter:brightness(1.9)}to{filter:none}}
+.circuit-wires{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:2;overflow:visible}
+.wire{fill:none;stroke-width:5;stroke-linecap:round}
+.solder{stroke:#555B62;stroke-width:1.5;fill:#C9CED4}
+.live-wire{fill:none;stroke:#FFE27A;stroke-width:4;stroke-linecap:round;stroke-dasharray:8 6;animation:livewire .4s linear infinite;filter:drop-shadow(0 0 4px #FFC93C)}
+@keyframes livewire{to{stroke-dashoffset:-14}}
+.bad-wire{fill:none;stroke:#FF4D4D;stroke-width:4;stroke-linecap:round;filter:drop-shadow(0 0 5px #FF4D4D)}
+@media (max-width:620px){
+  .circuit-board{grid-template-columns:1fr 34px 1fr;column-gap:26px;padding:0 10px 14px}
+  .circuit-head{margin:0 -10px 14px;padding:10px;font-size:.9rem}
+  .node{font-size:.85rem;padding:10px 12px;min-height:52px}.node.L{padding-right:18px}.node.R{padding-left:18px}
+  .capacitor::after{display:none}.cap-label{font-size:.7rem}.stub{width:8px}.node.L .spark{left:calc(100% + 8px)}.node.R .spark{right:calc(100% + 8px)}
+}
+@media (prefers-reduced-motion:reduce){.spark{animation:none;opacity:.7}.live-wire{animation:none}}
+

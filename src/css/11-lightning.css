@@ -1,0 +1,44 @@
+/* Lightning: a thunderstorm */
+.storm{position:relative;overflow:hidden;height:clamp(480px,72vh,800px);border-radius:18px;color:#EAF2FF;user-select:none;
+  background:linear-gradient(180deg,#121729 0%,#20283F 42%,#2C3450 72%,#191E2F 100%);transition:box-shadow .15s}
+.storm.hurt{box-shadow:inset 0 0 0 4px #FF6B5B}
+.storm.shake{animation:shake .3s}
+.storm-clouds{position:absolute;left:-20%;top:-6%;width:140%;height:46%;pointer-events:none;opacity:.95;animation:drift 38s ease-in-out infinite alternate;
+  background:radial-gradient(ellipse 18% 55% at 10% 30%,#3A4360,transparent 70%),radial-gradient(ellipse 22% 60% at 28% 22%,#2F3753,transparent 70%),
+    radial-gradient(ellipse 20% 50% at 48% 30%,#3D4664,transparent 70%),radial-gradient(ellipse 24% 62% at 68% 20%,#30395A,transparent 70%),
+    radial-gradient(ellipse 20% 52% at 88% 32%,#394262,transparent 70%),radial-gradient(ellipse 60% 40% at 50% 0%,#0E1220,transparent 80%)}
+@keyframes drift{from{transform:translateX(-6%)}to{transform:translateX(6%)}}
+.storm-rain{position:absolute;inset:0;pointer-events:none;opacity:.45;animation:rain .55s linear infinite;
+  background-image:repeating-linear-gradient(104deg,transparent 0 22px,#A9C2E833 22px 23px,transparent 23px 47px);background-size:240px 240px}
+@keyframes rain{to{background-position:-70px 240px}}
+.storm-flash{position:absolute;inset:0;pointer-events:none;background:#DCEBFF;opacity:0}
+.storm-flash.on{animation:skyflash .45s ease-out}
+.storm-flash.bad{background:#FF6B5B}
+@keyframes skyflash{0%{opacity:.5}25%{opacity:.08}40%{opacity:.32}100%{opacity:0}}
+.storm-bolt{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;z-index:3;opacity:0}
+.storm-bolt.on{animation:bolt .4s steps(4) forwards}
+.storm-bolt path{fill:none;stroke:#FFFFFF;stroke-width:3.5;stroke-linejoin:round;filter:drop-shadow(0 0 5px #A8DCFF) drop-shadow(0 0 16px #6FB4FF)}
+.storm-bolt path.branch{stroke-width:2}
+@keyframes bolt{0%{opacity:1}30%{opacity:.4}55%{opacity:1}100%{opacity:0}}
+.storm-time{position:absolute;top:16px;left:50%;transform:translateX(-50%);z-index:2;font-size:2.1rem;font-weight:800;color:#CFE0FF;
+  font-variant-numeric:tabular-nums;text-shadow:0 2px 10px #0008}
+.storm-time.low{color:#FF9A8C}
+.storm-bonus{position:absolute;top:66px;left:0;right:0;z-index:2;text-align:center;font-weight:800;color:#A8DCFF;opacity:0;transition:opacity .2s}
+.storm-bonus.show{opacity:1} .storm-bonus.bad{color:#FF9A8C}
+.storm-card{position:absolute;left:50%;top:42%;transform:translate(-50%,-50%);z-index:2;width:min(720px,88%);padding:28px 30px;text-align:center;
+  background:#141A2CB8;border:1px solid #6F86B855;border-radius:22px;box-shadow:0 18px 40px -18px #000c;backdrop-filter:blur(3px);
+  transition:border-color .15s,box-shadow .15s}
+.storm-card.zap{border-color:#A8DCFF;box-shadow:0 0 0 2px #A8DCFF,0 0 34px #6FB4FF88}
+.storm-card.miss{border-color:#FF6B5B;box-shadow:0 0 0 2px #FF6B5B}
+.lt-prompt{font-size:clamp(1.3rem,3vw,1.9rem);font-weight:800;overflow-wrap:anywhere;white-space:pre-wrap}
+.lt-is{margin:10px 0 8px;font-size:.85rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#93A6CC}
+.lt-answer{font-size:clamp(1.1rem,2.4vw,1.45rem);overflow-wrap:anywhere;white-space:pre-wrap}
+.storm-btns{position:absolute;left:5%;right:5%;bottom:28px;z-index:2;display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.storm-btn{height:78px;border-radius:20px;font-size:1.45rem;font-weight:800;cursor:pointer;color:#fff;border:2px solid;transition:transform .08s,filter .15s}
+.storm-btn:hover{filter:brightness(1.12)} .storm-btn:active{transform:scale(.98)}
+.storm-btn.yes{background:#1E5FA8CC;border-color:#7CC4FF;box-shadow:0 0 18px #3FA7FF55}
+.storm-btn.no{background:#8A2E2ACC;border-color:#FF8A7A;box-shadow:0 0 18px #FF6B5B44}
+.storm-btn small{display:block;font-size:.72rem;font-weight:600;opacity:.75}
+.lt-mult{color:var(--accent);font-weight:800}
+@media (max-width:560px){.storm-card{padding:20px 18px}.storm-btn{height:66px;font-size:1.2rem}}
+@media (prefers-reduced-motion:reduce){.storm-rain,.storm-clouds{animation:none}.storm.shake{animation:none}}

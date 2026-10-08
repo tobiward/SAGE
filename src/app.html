@@ -1,0 +1,731 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<!-- Security: only the app's own inline code runs. Network access is limited to fonts and to the AI provider the user configures
+     (any https address, plus localhost for self-hosted models). -->
+<meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src data: blob:; connect-src https: http://localhost:* http://127.0.0.1:*; base-uri 'none'; form-action 'none'; object-src 'none'">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>SAGE</title>
+<link rel="icon" type="image/png" sizes="128x128" href="{{FAVICON}}">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Fraunces:opsz,wght@9..144,500;9..144,600&family=VT323&family=Press+Start+2P&display=swap" rel="stylesheet">
+<style>
+{{CSS}}</style>
+</head>
+<body>
+<header class="top">
+  <div class="brand-wrap">
+    <button class="brand" id="homeBtn" aria-label="Go to decks"><img id="brandLeaf" alt="">SAGE</button>
+    <button type="button" class="donate-link" id="donateLink" hidden>Donate</button>
+  </div>
+  <div class="top-actions">
+    <button class="btn" id="helpBtn">Help</button>
+    <button class="btn" id="aiBtn">AI study guide</button>
+    <button class="btn" id="backupBtn">Backup</button>
+    <button class="btn primary" id="importBtn">Import CSV</button>
+  </div>
+</header>
+
+<div class="warn" id="storageWarn" hidden>
+  This browser view can't save data, so decks will disappear when you close it. Download the file and open it in Chrome, Firefox, Edge, or Safari to keep your progress.
+</div>
+
+<main>
+  <!-- HOME -->
+  <section id="view-home">
+    <div class="nudge" id="backupNudge" role="status" hidden>
+      <span id="nudgeMsg"></span>
+      <span class="nudge-btns">
+        <button class="btn primary" id="nudgeAction"></button>
+        <button class="btn quiet" id="nudgeLater">Remind me later</button>
+      </span>
+    </div>
+    <div id="deckWrap" hidden>
+      <h1>Your decks</h1>
+      <ul class="decks" id="deckList"></ul>
+    </div>
+    <div class="empty" id="emptyState" hidden>
+      <h1>No decks yet</h1>
+      <p>Import a CSV file with one card per row: the front in one column and the back in another. Your decks are saved in this browser, so you only import once.</p>
+      <p>Not sure what a CSV is? <button type="button" class="foot-link" data-help="csv">See how to make one with a free AI chat</button> in about a minute.</p>
+      <div class="actions" style="justify-content:flex-start">
+        <button class="btn primary" data-act="import">Import CSV</button>
+        <button class="btn" id="sampleBtn">Add a sample deck</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- IMPORT -->
+  <section id="view-import" hidden>
+    <h1>Import cards</h1>
+    <label class="drop" id="drop">
+      <input type="file" id="fileIn" accept=".csv,.tsv,.txt,text/csv,text/plain">
+      <strong>Choose a CSV file</strong>
+      <span>or drop it here. Each row becomes one card.</span>
+    </label>
+    <details class="panel paste-box" id="pasteBox">
+      <summary><strong>Or paste text instead</strong> <span class="hint">CSV text, a table, or a list, even inside a whole AI chat reply</span></summary>
+      <p class="hint" style="margin:10px 0 0">One card per line or table row, with the front first and the back second. SAGE understands
+        comma or tab separated lines (<code>Front,Back</code> or <code>"Front","Back"</code>), tables copied from AI chats or spreadsheets,
+        and lists like <code>Term: definition</code> or <code>Term - definition</code>. Extra sentences around the cards are ignored.</p>
+      <textarea id="pasteText" rows="7" placeholder="Front,Back&#10;Mitochondria,Powerhouse of the cell&#10;Osmosis,Water moving across a membrane"></textarea>
+      <div class="actions"><button class="btn" type="button" data-help="paste">See examples</button><button class="btn primary" type="button" id="pasteUse">Use pasted text</button></div>
+    </details>
+    <div id="importOpts" class="panel" style="margin-top:16px" hidden>
+      <p id="fileInfo" style="margin-top:0"></p>
+      <label class="check"><input type="checkbox" id="hasHeader"> <span>First row is column names, not a card</span></label>
+      <div class="row2">
+        <label class="field">Front of card <select id="colFront"></select></label>
+        <label class="field">Back of card <select id="colBack"></select></label>
+      </div>
+      <fieldset>
+        <legend>Add cards to</legend>
+        <label class="check"><input type="radio" name="target" value="new" checked> <span>A new deck</span></label>
+        <label class="field" id="newNameWrap"><span class="hint">Deck name</span><input type="text" id="newDeckName" maxlength="80"></label>
+        <label class="check" id="existingRadioWrap"><input type="radio" name="target" value="existing"> <span>An existing deck</span></label>
+        <label class="field" id="existingWrap" hidden><select id="existingDeck"></select></label>
+      </fieldset>
+      <label class="check"><input type="checkbox" id="skipDup" checked> <span>Skip rows whose front already exists in the deck</span></label>
+      <strong>Preview</strong>
+      <div class="preview"><table id="previewTbl"></table></div>
+      <div class="actions">
+        <button class="btn quiet" data-act="home">Cancel</button>
+        <button class="btn primary" id="doImport">Import</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- STUDY -->
+  <section id="view-study" hidden>
+    <div class="study-top">
+      <span class="study-deck" id="studyDeck"></span>
+      <div class="counts" id="studyCounts" aria-label="Cards left"></div>
+    </div>
+    <article class="card" aria-live="polite">
+      <div class="card-text" id="cardFront"></div>
+      <div class="card-back card-text" id="cardBack" hidden></div>
+    </article>
+    <div class="answer-bar" id="answerBar"><button class="btn primary" id="showBtn">Show answer</button></div>
+    <div class="rate-bar" id="rateBar" hidden>
+      <button class="rate" data-g="1"><b>Again</b><span></span></button>
+      <button class="rate" data-g="2"><b>Hard</b><span></span></button>
+      <button class="rate" data-g="3"><b>Good</b><span></span></button>
+      <button class="rate" data-g="4"><b>Easy</b><span></span></button>
+    </div>
+    <p class="keys">Space shows the answer. Keys 1 to 4 rate the card.</p>
+    <div class="actions" style="justify-content:center;margin-top:8px"><button class="btn quiet" id="endBtn">End session</button></div>
+  </section>
+
+  <!-- DONE -->
+  <section id="view-done" hidden>
+    <div class="done">
+      <h1 id="doneTitle">Session complete</h1>
+      <p id="doneMsg" class="hint"></p>
+      <div class="done-stats" id="doneStats"></div>
+      <div class="actions" style="justify-content:center">
+        <button class="btn" id="doneMore">Study more</button>
+        <button class="btn primary" data-act="home">Back to decks</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- GAMES MENU -->
+  <section id="view-games" hidden>
+    <div class="study-top">
+      <h1 id="gamesTitle" style="margin:0;overflow-wrap:anywhere"></h1>
+      <button class="btn quiet" data-act="home">Back to decks</button>
+    </div>
+    <div class="tabs" role="tablist">
+      <button class="tab on" role="tab" id="tab-play" aria-selected="true" aria-controls="gamesPlay">Play</button>
+      <button class="tab" role="tab" id="tab-settings" aria-selected="false" aria-controls="gamesSettings">Settings</button>
+    </div>
+    <div id="gamesPlay" role="tabpanel" aria-labelledby="tab-play">
+      <p class="hint">Games use this deck's cards but don't change your study schedule.</p>
+      <ul class="games" id="gameList"></ul>
+    </div>
+    <div id="gamesSettings" role="tabpanel" aria-labelledby="tab-settings" hidden>
+      <p class="hint">Changes save automatically for this deck.</p>
+      <div id="gameSettings"></div>
+    </div>
+  </section>
+
+  <!-- MATCH -->
+  <section id="view-match" hidden>
+    <div class="study-top">
+      <span class="study-deck" id="matchDeck"></span>
+      <button class="btn quiet" id="matchQuit">Quit</button>
+    </div>
+    <div class="arcade">
+      <div class="arcade-marquee">MATCHING TILES</div>
+      <div class="arcade-hud">
+        <span>TIME<b id="matchTimer">0.0</b><span class="penalty" id="matchPenalty">+1s</span></span>
+        <span>PAIRS<b id="matchPairs">0/0</b></span>
+        <span>BEST<b id="matchBest">--</b></span>
+      </div>
+      <div class="match-grid" id="matchGrid"></div>
+      <div class="arcade-clear" id="matchClear" hidden>CLEAR!</div>
+    </div>
+  </section>
+
+  <!-- SCRAMBLE -->
+  <section id="view-scramble" hidden>
+    <div class="study-top">
+      <div class="scramble-hud">
+        <span>Score <b id="scrambleScore">0</b></span>
+        <span>Level <b id="scrambleLevel">1</b></span>
+        <span class="lives" id="scrambleLives" aria-label="Lives"></span>
+      </div>
+      <div class="game-btns"><button class="btn" id="scramblePause">Pause</button><button class="btn quiet" id="scrambleQuit">Quit</button></div>
+    </div>
+    <div class="scramble-arena" id="scrambleArena">
+      <div class="miner" id="scrambleMiner"><svg viewBox="0 0 14 18" aria-hidden="true"></svg><div class="launcher" id="scrambleLauncher"></div></div>
+      <div class="pause-overlay" id="scramblePaused" hidden>Paused<button class="btn primary" data-resume="scramble">Resume</button></div>
+    </div>
+    <div class="scramble-prompt" id="scramblePrompt" aria-live="polite"></div>
+    <p class="keys">Click anywhere to fire a rocket that way; it keeps flying until it hits a rock. Keys 1 to 4 run under a rock (left to right) and fire. P pauses.</p>
+  </section>
+
+  <!-- BLAST -->
+  <section id="view-blast" hidden>
+    <div class="study-top">
+      <div class="scramble-hud"><span>Score <b id="blastScore">0</b></span><span class="lives" id="blastLives"></span></div>
+      <div class="game-btns"><button class="btn" id="blastPause">Pause</button><button class="btn quiet" id="blastQuit">Quit</button></div>
+    </div>
+    <div class="blast-banner" id="blastPrompt" aria-live="polite"></div>
+    <div class="blast-arena" id="blastArena">
+      <div class="blast-time" id="blastTime">60</div>
+      <div class="blast-bonus" id="blastBonus"></div>
+      <div class="ship" id="blastShip"></div>
+      <div class="blast-meters">
+        <div class="meter"><div class="meter-row"><span id="blastLvl">Lvl 1</span><span id="blastProg">0/10</span></div><div class="bar"><i id="blastBar" style="width:0"></i></div></div>
+        <div class="meter" style="align-items:flex-end"><span>Streak</span><div class="streak" id="blastStreak"></div></div>
+      </div>
+      <div class="pause-overlay" id="blastPaused" hidden>Paused<button class="btn primary" data-resume="blast">Resume</button></div>
+    </div>
+    <p class="keys">Clear each level's goal before the clock runs out. Quick answers build your streak; a full streak adds time. P pauses.</p>
+  </section>
+
+  <!-- CIRCUIT -->
+  <section id="view-circuit" hidden>
+    <div class="study-top">
+      <span class="study-deck">Wire each side to its match</span>
+      <div class="game-btns"><button class="btn" id="circuitPause">Pause</button><button class="btn quiet" id="circuitQuit">Quit</button></div>
+    </div>
+    <div class="circuit-board" id="circuitBoard">
+      <div class="circuit-head">
+        <span>Time <b id="circuitTime">0.0</b> <span class="penalty" id="circuitPenalty"></span></span>
+        <span class="ttl" id="circuitTitle"></span>
+        <span class="right">Pairs <b id="circuitPairs">0/0</b></span>
+      </div>
+      <div class="circuit-col" id="circuitLeft"></div>
+      <div class="capacitor" id="circuitCap"><div class="cap-fill" id="circuitFill"></div><span class="cap-label" id="circuitCharge">0%</span></div>
+      <div class="circuit-col" id="circuitRight"></div>
+      <svg class="circuit-wires" id="circuitWires" aria-hidden="true"><g id="circuitWireGroup"></g><path id="circuitLive" class="live-wire" d=""/></svg>
+      <div class="pause-overlay" id="circuitPaused" hidden>Paused<button class="btn primary" data-resume="circuit">Resume</button></div>
+    </div>
+    <p class="keys">Drag from one side to its match on the other, or tap one and then the other. Wrong connections add 2 seconds. P pauses.</p>
+  </section>
+
+  <!-- TERMINAL -->
+  <section id="view-terminal" hidden>
+    <div class="study-top">
+      <span class="study-deck" id="terminalHeading">Type each card, filling in the blank</span>
+      <div class="game-btns"><button class="btn" id="terminalPause">Pause</button><button class="btn quiet" id="terminalQuit">Quit</button></div>
+    </div>
+    <div class="term" id="term">
+      <div class="term-bar"><span class="dots"><i></i><i></i><i></i></span><span id="termTitle"></span></div>
+      <div class="term-status" id="termStatus"></div>
+      <div class="term-body">
+        <div class="term-history" id="termHistory"></div>
+        <div class="term-options" id="termOptions" aria-label="Options for the missing word"></div>
+        <div class="term-line" id="termLine"></div>
+        <div class="term-hint" id="termHint"></div>
+      </div>
+      <input id="termInput" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" aria-label="Type the answer here">
+      <div class="pause-overlay" id="terminalPaused" hidden>Paused<button class="btn primary" data-resume="terminal">Resume</button></div>
+    </div>
+    <div class="actions" style="justify-content:center;margin-top:10px"><button type="button" class="btn" id="termHintBtn">Show the answer</button></div>
+    <p class="keys" id="termKeys">Type the whole line, filling the blank with one of the options above it. The clock starts on your first keystroke. Tab reveals the answer, Esc pauses.</p>
+  </section>
+
+  <!-- QUIZ SETUP -->
+  <section id="view-quizsetup" hidden>
+    <div class="study-top">
+      <h1 id="qsTitle" style="margin:0;overflow-wrap:anywhere"></h1>
+      <button class="btn quiet" data-act="home">Back to decks</button>
+    </div>
+    <p class="hint" id="qsLast"></p>
+    <div class="panel">
+      <div class="row2">
+        <label class="field">Questions <select id="qsCount"></select></label>
+        <label class="field">Answer with
+          <select id="qsDir">
+            <option value="back">Back of card (front is the question)</option>
+            <option value="front">Front of card (back is the question)</option>
+            <option value="mixed">A mix of both</option>
+          </select></label>
+      </div>
+      <fieldset>
+        <legend>Question types</legend>
+        <div class="qs-types" id="qsTypes">
+          <label class="check"><input type="checkbox" value="mc"> <span>Multiple choice</span></label>
+          <label class="check"><input type="checkbox" value="tf"> <span>True or false</span></label>
+          <label class="check"><input type="checkbox" value="fill"> <span>Fill in the missing word</span></label>
+        </div>
+      </fieldset>
+      <label class="field">Show correct answers
+        <select id="qsFeedback"><option value="instant">After each question</option><option value="end">When I submit the quiz</option></select></label>
+      <label class="check"><input type="checkbox" id="qsHard"> <span>Put harder cards first <span class="hint">(based on your study history)</span></span></label>
+      <label class="check"><input type="checkbox" id="qsBump"> <span>Mark missed cards as Hard in flash cards
+        <span class="hint">(they become due right away; cards you haven't studied yet are left alone)</span></span></label>
+      <div class="actions"><button class="btn primary" id="qsStart">Start quiz</button></div>
+    </div>
+  </section>
+
+  <!-- QUIZ (one printed-style page) -->
+  <section id="view-quiz" hidden>
+    <div class="study-top">
+      <span class="study-deck" id="qzProgress"></span>
+      <button class="btn quiet" id="qzQuit">Leave quiz</button>
+    </div>
+    <div class="paper">
+      <header class="paper-head"><h1 id="qzTitle"></h1><p id="qzSub"></p></header>
+      <div class="paper-score" id="qzScore" hidden></div>
+      <ol class="pq-list" id="qzList"></ol>
+      <div class="paper-foot" id="qzFoot"></div>
+    </div>
+  </section>
+
+  <!-- DECK EDITOR -->
+  <section id="view-edit" hidden>
+    <div class="study-top">
+      <h1 id="edTitle" style="margin:0;overflow-wrap:anywhere"></h1>
+      <button class="btn quiet" data-act="home">Back to decks</button>
+    </div>
+    <div class="panel ed-layout" id="edLayout" hidden>
+      <h2>Card layout</h2>
+      <p class="hint" style="margin:0">Your file had more than two columns. Choose which columns appear on each side; a side can show several.
+        Cards you've edited by hand keep their text.</p>
+      <div class="ed-cols"><table id="edCols"></table></div>
+      <div class="actions"><button class="btn primary" id="edApply">Update cards</button></div>
+    </div>
+    <div class="ed-bar">
+      <input type="search" id="edSearch" placeholder="Search cards" aria-label="Search cards">
+      <span class="hint" id="edCount"></span>
+      <button class="btn primary" id="edAdd">Add card</button>
+    </div>
+    <div class="ed-undo" id="edUndo" hidden><span id="edUndoMsg">Card deleted.</span><button class="btn quiet" id="edUndoBtn">Undo</button></div>
+    <p class="hint" id="edOrderHint">Drag a card by its handle, or use the arrows, to change the order. New cards are studied in this order. Changes save automatically.</p>
+    <ol class="ed-list" id="edList"></ol>
+    <div class="actions" style="justify-content:center;margin-top:14px"><button class="btn" id="edMore" hidden>Show more</button></div>
+  </section>
+
+  <!-- LIGHTNING -->
+  <section id="view-lightning" hidden>
+    <div class="study-top">
+      <div class="scramble-hud"><span>Score <b id="ltScore">0</b></span><span>Streak <b id="ltStreak">0</b> <span class="lt-mult" id="ltMult"></span></span></div>
+      <div class="game-btns"><button class="btn" id="lightningPause">Pause</button><button class="btn quiet" id="lightningQuit">Quit</button></div>
+    </div>
+    <div class="storm" id="ltArena">
+      <div class="storm-clouds"></div><div class="storm-rain"></div><div class="storm-flash" id="ltFlash"></div>
+      <svg class="storm-bolt" id="ltBolt" aria-hidden="true"></svg>
+      <div class="storm-time" id="ltTime">60</div>
+      <div class="storm-bonus" id="ltBonus"></div>
+      <div class="storm-card" id="ltCard" aria-live="polite">
+        <div class="lt-prompt" id="ltPrompt"></div>
+        <div class="lt-is">is matched with</div>
+        <div class="lt-answer" id="ltAnswer"></div>
+      </div>
+      <div class="storm-btns">
+        <button class="storm-btn yes" data-lt="1">True<small>left arrow</small></button>
+        <button class="storm-btn no" data-lt="0">False<small>right arrow</small></button>
+      </div>
+      <div class="pause-overlay" id="lightningPaused" hidden>Paused<button class="btn primary" data-resume="lightning">Resume</button></div>
+    </div>
+    <p class="keys">Is that the right match? Right answers add 5 seconds (3 after the first five minutes), wrong ones take 5 away, and every 5 in a row raises your multiplier. P pauses.</p>
+  </section>
+
+  <!-- AI STUDY GUIDE -->
+  <section id="view-ai" hidden>
+    <div class="study-top">
+      <h1 style="margin:0">AI study guide</h1>
+      <button class="btn quiet" data-act="home">Back to decks</button>
+    </div>
+    <p class="hint">Paste notes or add files, and an AI turns them into flash cards plus study tips. It uses your own API key, and your
+      material goes straight from this browser to the AI provider you choose, only when you press the button.</p>
+    <div class="ai-grid">
+      <div class="panel">
+        <label class="field">Your study material
+          <textarea id="aiText" rows="9" placeholder="Paste notes, a chapter, a glossary, or a list of terms..."></textarea></label>
+        <div class="ai-files">
+          <label class="btn" for="aiFiles">Add files</label>
+          <input type="file" id="aiFiles" multiple accept="image/png,image/jpeg,image/webp,image/gif,application/pdf,.txt,.md,.csv,text/plain" hidden>
+          <span class="hint">Photos of notes, screenshots, PDFs, or text files</span>
+        </div>
+        <div class="ai-chips" id="aiFileList"></div>
+        <label class="field">Include my study stats from
+          <select id="aiDeck"></select>
+          <span class="hint">Lets the AI see which cards you struggle with and suggest what to focus on.</span></label>
+        <div class="actions">
+          <button class="btn quiet" id="aiCancel" hidden>Cancel</button>
+          <button class="btn primary" id="aiRun">Create study guide</button>
+        </div>
+        <div class="ai-status hint" id="aiStatus" aria-live="polite"></div>
+        <div class="ai-out" id="aiOut" hidden></div>
+        <div class="actions" id="aiOutActions" style="margin-top:12px" hidden>
+          <button class="btn" id="aiCopy">Copy response</button>
+          <button class="btn" id="aiDownload">Download CSV</button>
+          <button class="btn primary" id="aiImport">Import cards</button>
+        </div>
+      </div>
+      <div class="panel ai-side">
+        <h2>Connection</h2>
+        <label class="field">Provider
+          <select id="aiProvider"><option value="gemini">Google Gemini (free tier available)</option><option value="anthropic">Anthropic (Claude)</option><option value="openai">OpenAI or compatible</option></select></label>
+        <p class="hint" style="margin:-6px 0 14px">No key yet? <button type="button" class="foot-link" data-help="key">How to get a free one</button></p>
+        <label class="field" id="aiBaseWrap" hidden>API address
+          <input type="text" id="aiBase" placeholder="https://api.openai.com/v1" spellcheck="false"></label>
+        <label class="field">Model
+          <input type="text" id="aiModel" spellcheck="false">
+          <span class="hint">Pick a model that can read images and PDFs so photos of notes work.</span></label>
+        <label class="field">API key
+          <span class="ai-key"><input type="password" id="aiKey" autocomplete="off" spellcheck="false" placeholder="Paste your API key">
+            <button class="btn quiet" type="button" id="aiShowKey">Show</button></span></label>
+        <label class="check"><input type="checkbox" id="aiRemember"> <span>Remember the key on this device
+          <span class="hint">(stored in this browser only, never in backups; don't use on shared computers)</span></span></label>
+        <button class="btn quiet" type="button" id="aiForget">Forget key</button>
+        <div class="section">
+          <h2>Instructions for the AI</h2>
+          <p class="hint" style="margin-top:0">The AI reads this before your material. Edit it to change how cards and tips are written. Changes save automatically.</p>
+          <textarea id="aiPrompt" rows="16" spellcheck="false"></textarea>
+          <div class="actions" style="margin-top:8px"><button class="btn quiet" type="button" id="aiResetPrompt">Reset to default</button></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- HELP (kept in sync with README.md: same sections, same order) -->
+  <section id="view-help" hidden>
+    <div class="study-top">
+      <h1 style="margin:0">Help</h1>
+      <button class="btn quiet" data-act="home">Back to decks</button>
+    </div>
+    <p class="hint">SAGE (Study with Adaptive Gaming Environments) is a free study app that runs entirely in your browser.</p>
+    <nav class="help-nav" aria-label="Help topics">
+      <button class="btn" data-help="start">Getting started</button>
+      <button class="btn" data-help="csv">Making cards</button>
+      <button class="btn" data-help="paste">What can I paste?</button>
+      <button class="btn" data-help="study">Flash cards</button>
+      <button class="btn" data-help="more">Quiz, games, editor</button>
+      <button class="btn" data-help="key">AI study guide</button>
+      <button class="btn" data-help="data">Saving and updating</button>
+      <button class="btn" data-help="icon">Desktop icon</button>
+      <button class="btn" data-help="privacy">Privacy and safety</button>
+      <button class="btn" data-help="faq">Troubleshooting</button>
+    </nav>
+    <div class="help">
+
+      <section class="panel" id="help-start">
+        <h2>Getting started</h2>
+        <ol>
+          <li>Keep <code>sage.html</code> on your desktop (or a shortcut to it; see <button type="button" class="foot-link" data-help="icon">Desktop icon</button>). Double-click it whenever you want to study, just like opening an app. It works offline.</li>
+          <li>Click <strong>Import CSV</strong> and choose a file, or paste text. Pick which column is the front and which is the back.</li>
+          <li>Press <strong>Flash cards</strong> on your deck to study. Flip a card, then rate how well you knew it.</li>
+          <li>Try the <strong>Quiz</strong> to test yourself or <strong>Games</strong> for practice. Use <strong>Options → Edit cards</strong> to fix or add cards.</li>
+        </ol>
+      </section>
+
+      <section class="panel" id="help-csv">
+        <h2>Making cards</h2>
+        <p>A <strong>CSV</strong> is plain text where each line is one card: the front, a comma, then the back.</p>
+        <pre>Front,Back
+Mitochondria,Powerhouse of the cell
+Osmosis,Water moving across a membrane</pre>
+        <p><strong>No CSV? Let a free AI chat make one.</strong></p>
+        <ol>
+          <li>Open a free AI chat such as <a href="https://claude.ai" target="_blank" rel="noopener noreferrer">Claude</a>,
+            <a href="https://gemini.google.com" target="_blank" rel="noopener noreferrer">Gemini</a>, or
+            <a href="https://chatgpt.com" target="_blank" rel="noopener noreferrer">ChatGPT</a>.</li>
+          <li>Type <strong>"Make this into a CSV file"</strong>, then paste your notes, or attach photos, screenshots, or a PDF of them.</li>
+          <li>Copy the reply, then in SAGE choose <strong>Import CSV</strong>, open <strong>Or paste text instead</strong>, paste, and press <strong>Use pasted text</strong>.</li>
+        </ol>
+        <p><strong>From a spreadsheet:</strong> put fronts in column A and backs in column B, then save or download as CSV (in Excel, choose "CSV UTF-8").
+          You can also copy the two columns and paste them straight into the paste box.</p>
+        <p><strong>More than two columns?</strong> SAGE keeps every column. Later, in <strong>Options → Edit cards</strong>, you can choose which columns appear on each side, including several on one side.</p>
+        <p class="callout">Prefer to skip hopping between platforms? The built-in <button type="button" class="foot-link" id="helpOpenAI">AI study guide</button> does all of this
+          inside SAGE once you add an API key, and it can also look at your study stats to tell you what to focus on.</p>
+      </section>
+
+      <section class="panel" id="help-paste">
+        <h2>What can I paste?</h2>
+        <p>One card per line or table row, with the <strong>front first</strong> and the <strong>back second</strong>. Any of these work, even when they sit inside a longer AI reply; extra sentences around the cards are ignored.</p>
+        <ul>
+          <li><strong>Comma separated:</strong> <code>Mitochondria,Powerhouse of the cell</code></li>
+          <li><strong>Quoted:</strong> <code>"Mitochondria", "Powerhouse, of the cell"</code> (use quotes when the text has commas)</li>
+          <li><strong>Tab separated</strong>, which is what you get when you copy two columns from Excel or Google Sheets</li>
+          <li><strong>Tables</strong> from AI chats: <code>| Mitochondria | Powerhouse of the cell |</code></li>
+          <li><strong>Lists:</strong> <code>Mitochondria: Powerhouse of the cell</code> or <code>Mitochondria - Powerhouse of the cell</code>, one per line, with or without bullets or numbers</li>
+        </ul>
+        <p>A header row like <code>Front,Back</code> or <code>Term,Definition</code> is optional; SAGE spots it and lets you confirm. Semicolons work in place of commas too.</p>
+      </section>
+
+      <section class="panel" id="help-study">
+        <h2>Flash cards</h2>
+        <ul>
+          <li>Each deck shows <strong>New</strong> (never studied), <strong>Learning</strong> (seen recently, coming back soon), and <strong>Due</strong> (ready for review today).</li>
+          <li>After flipping a card, rate it: <strong>Again</strong> if you forgot, <strong>Hard</strong>, <strong>Good</strong>, or <strong>Easy</strong>. Each button shows when you'll see the card next.</li>
+          <li>Cards you know well come back less and less often. That's spaced repetition, and it's why a few minutes a day beats cramming.</li>
+          <li>Set new cards per day, cards per session, and target recall in <strong>Options</strong>. A new study day starts at 4 AM.</li>
+          <li>Done for the day? Press <strong>Flash cards</strong> again for <strong>Study more</strong>: extra new cards, reviewing early, or free practice.</li>
+        </ul>
+        <p>Keyboard: <kbd>Space</kbd> flips the card, <kbd>1</kbd> to <kbd>4</kbd> rate it.</p>
+      </section>
+
+      <section class="panel" id="help-more">
+        <h2>Quiz, games, and the deck editor</h2>
+        <p><strong>Quiz:</strong> a one-page test answered with the mouse: multiple choice, true or false, and fill in the missing word. Choose how many questions, which side is the answer,
+          and whether answers are marked as you go or when you submit. Optionally, missed questions mark those cards as Hard in flash cards so they come back right away.</p>
+        <p><strong>Games</strong> never change your study schedule. Each has its own options on the Settings tab, and most pause with <kbd>P</kbd>.</p>
+        <ul>
+          <li><strong>Matching Tiles:</strong> pair fronts with backs against the clock.</li>
+          <li><strong>Matching Pairs:</strong> wire each item on the left to its match on the right.</li>
+          <li><strong>Scramble:</strong> shoot the falling rock with the right answer.</li>
+          <li><strong>Blast:</strong> shoot the right planet and clear each level before time runs out.</li>
+          <li><strong>Terminal:</strong> type each card, choosing the missing word from four options. Every word you type adds a second to the clock.</li>
+          <li><strong>Survival:</strong> type just the missing word from memory, with 3 lives. Tab or the hint button reveals a letter for a life.</li>
+          <li><strong>Lightning:</strong> decide true or false as fast as you can. Right answers add 5 seconds (3 after five minutes), wrong ones take 5 away.</li>
+        </ul>
+        <p><strong>Deck editor</strong> (<strong>Options → Edit cards</strong>): add, edit, delete (with undo), search, and reorder cards. New cards are studied in the order shown.</p>
+      </section>
+
+      <section class="panel" id="help-key">
+        <h2>AI study guide and free API keys</h2>
+        <p>The <strong>AI study guide</strong> turns notes, photos, PDFs, or text files into flash cards plus study tips, and can use your study stats to point out weak spots.
+          It needs an <strong>API key</strong>: a password that lets SAGE talk to an AI for you.</p>
+        <p><strong>Recommended free option: Google Gemini.</strong> It has a free tier, usually needs no credit card, and reads photos and PDFs.</p>
+        <ol>
+          <li>Go to <a href="https://aistudio.google.com/app/apikey" target="_blank" rel="noopener noreferrer">Google AI Studio</a> and sign in with a Google account.</li>
+          <li>Click <strong>Create API key</strong>, then copy the key (it starts with <code>AIza</code>).</li>
+          <li>In SAGE, open <strong>AI study guide</strong>, choose <strong>Google Gemini</strong>, and paste the key. The model box fills in
+            <code>gemini-3.5-flash-lite</code>: stable, fast, reads images and PDFs, and has a much bigger free daily allowance (about 500 requests a day, versus about 20 for the full Flash models). You can type another model name into the box anytime.</li>
+        </ol>
+        <ul>
+          <li><strong>Choose a model that can read images and files.</strong> Text-only models can't use photos or PDFs.</li>
+          <li><strong>Free means rate-limited.</strong> If you see "too many requests," wait a minute. Free limits change from time to time; AI Studio shows the current ones.</li>
+          <li><strong>"Busy" or "overloaded" errors</strong> come from Google's servers, not your key. SAGE automatically retries and, if needed, switches to a backup Gemini model, telling you which one answered.</li>
+          <li><strong>Privacy:</strong> Google says free-tier requests may be used to improve its products, so avoid sending anything private.</li>
+          <li><strong>Other options:</strong> Anthropic (Claude) and OpenAI, or any service with an OpenAI-style API, work too. They're pay-as-you-go; a study guide typically costs a few cents.</li>
+          <li><strong>The instructions are yours to edit.</strong> Change the <strong>Instructions for the AI</strong> box to get more cards, simpler wording, or another language. <strong>Reset to default</strong> brings back the original.</li>
+        </ul>
+      </section>
+
+      <section class="panel" id="help-data">
+        <h2>Saving, backups, and updating</h2>
+        <ul>
+          <li>Everything saves automatically in this browser on this computer. There's no account.</li>
+          <li><strong>Autosave to a file (Chrome and Edge, recommended):</strong> open <strong>Backup</strong> and press <strong>Choose a save file</strong> once.
+            SAGE then keeps that file up to date every time you study, so your decks are safe even if browser data is cleared. On a new computer,
+            choose <strong>Use an existing save file</strong> to pick up where you left off. After a browser restart, you may need to press <strong>Reconnect</strong> once.</li>
+          <li><strong>Backup reminder:</strong> if nothing has been saved outside the browser for a week, SAGE shows a note with a one-click backup.
+            <strong>Remind me later</strong> hides it for three days.</li>
+          <li><strong>Storage protection:</strong> SAGE asks your browser not to clear its data on its own when space runs low. Some browsers ask you to allow this.</li>
+          <li>Clearing your browser's history or site data deletes your decks. Opening SAGE in a different browser starts empty.</li>
+          <li>Use <strong>Backup → Export backup</strong> every so often. To move to another computer or browser, export there and choose <strong>Restore from backup</strong> here.</li>
+          <li>Leave <code>sage.html</code> where it is. In some browsers, moving or renaming it can hide your saved decks (restoring a backup brings them back).</li>
+          <li>The website version and a downloaded copy keep separate decks. Pick one, or use a backup to move between them.</li>
+        </ul>
+        <p><strong>Updating SAGE:</strong> your decks live in the browser, not in the file, so updating doesn't erase them.</p>
+        <ol>
+          <li>Export a backup, just in case.</li>
+          <li>Download the new <code>sage.html</code> and put it exactly where the old one was, with the same name, replacing it.</li>
+          <li>Open it. Your decks are still there. The version number is at the bottom of the page.</li>
+        </ol>
+        <p>Using the website version? Updates arrive automatically; just refresh.</p>
+      </section>
+
+      <section class="panel" id="help-icon">
+        <h2>Give SAGE its own desktop icon</h2>
+        <p>A plain HTML file shows your browser's logo. Download <code>sage.ico</code> (Windows) or <code>sage-icon.png</code> (Mac) from the latest release on SAGE's GitHub page and keep it next to <code>sage.html</code>.</p>
+        <p><strong>Windows</strong></p>
+        <ol>
+          <li>Keep <code>sage.html</code> and <code>sage.ico</code> together in a folder, such as Documents\SAGE.</li>
+          <li>Right-click <code>sage.html</code>, choose <strong>Show more options → Send to → Desktop (create shortcut)</strong>.</li>
+          <li>Right-click the new shortcut, choose <strong>Properties → Change Icon → Browse</strong>, pick <code>sage.ico</code>, and press OK. Rename the shortcut to SAGE.</li>
+        </ol>
+        <p><strong>Mac</strong></p>
+        <ol>
+          <li>Open <code>sage-icon.png</code> in Preview, then choose <strong>Edit → Select All</strong> and <strong>Edit → Copy</strong>.</li>
+          <li>Click <code>sage.html</code> in Finder and choose <strong>File → Get Info</strong>.</li>
+          <li>Click the small icon at the top left of the Info window and press <kbd>Command</kbd>+<kbd>V</kbd>.</li>
+        </ol>
+        <p><strong>Website version:</strong> in Chrome or Edge, open the browser menu and choose <strong>Install</strong> or <strong>Create shortcut</strong> (tick "Open as window") to get a SAGE icon on your desktop.</p>
+      </section>
+
+      <section class="panel" id="help-privacy">
+        <h2>Privacy and safety</h2>
+        <ul>
+          <li>No account, no ads, no tracking. Your cards never leave your browser except when you use the AI study guide.</li>
+          <li>SAGE only contacts the internet for its fonts, and for the AI provider you set up, only when you press <strong>Create study guide</strong>.</li>
+          <li>SAGE only runs its own code. Card text is always shown as plain text, and backup files are checked before they're restored.</li>
+          <li>Your API key stays in this browser and is never included in backups. Use <strong>Forget key</strong> on shared computers, and set a spending limit with your AI provider if it's a paid one.</li>
+        </ul>
+      </section>
+
+      <section class="panel" id="help-donate" hidden>
+        <h2>Supporting SAGE</h2>
+        <p>SAGE is free. If it helps you, the <strong>Donate</strong> link under the SAGE logo shows crypto addresses and QR codes for tips.
+          Always check that an address matches the one on SAGE's GitHub page before sending. Don't want to see the link? Hide it here or on the donate page, and bring it back anytime.</p>
+        <div class="actions" style="justify-content:flex-start">
+          <button type="button" class="btn" id="helpOpenDonate">Open donate page</button>
+          <button type="button" class="btn quiet" id="helpToggleDonate"></button>
+        </div>
+      </section>
+
+      <section class="panel" id="help-faq">
+        <h2>Troubleshooting</h2>
+        <details><summary>My decks disappeared</summary>
+          <p>They're tied to the browser and the file's location. Open SAGE in the same browser you used before, from the same folder. If your browser data was cleared, restore your latest backup.</p></details>
+        <details><summary>Pasted text says it couldn't find any cards</summary>
+          <p>Each card needs a front and a back on one line or table row. See <button type="button" class="foot-link" data-help="paste">What can I paste?</button> for formats that work. If you pasted an AI reply, make sure you copied all of it.</p></details>
+        <details><summary>A file import shows only one column</summary>
+          <p>Each line needs a front and a back separated by a comma, tab, or semicolon. Try opening the file and pasting its text into the paste box instead.</p></details>
+        <details><summary>Accented letters look wrong (like Ã© instead of é)</summary>
+          <p>Save the file as "CSV UTF-8" in Excel, or download it as CSV from Google Sheets, then import again.</p></details>
+        <details><summary>A game says it needs more cards</summary>
+          <p>Some games need at least 3 or 4 cards whose fronts and backs are all different. Add cards, or remove duplicates in <strong>Options → Edit cards</strong>.</p></details>
+        <details><summary>Long cards look crowded in games</summary>
+          <p>Games work best with fronts under about 60 characters and backs under about 150. Flash cards and the quiz handle longer text fine.</p></details>
+        <details><summary>The AI study guide shows an error</summary>
+          <ul><li><strong>Key rejected:</strong> copy the key again and check the provider matches the key (Gemini keys start with <code>AIza</code>).</li>
+            <li><strong>Model name not found:</strong> models get renamed or retired. Check your provider's model list and type a current name in the Model box.</li>
+            <li><strong>Busy or overloaded:</strong> the provider's servers are swamped. SAGE retries and switches Gemini models on its own; if it still fails, try again in a few minutes.</li>
+            <li><strong>Too many requests or out of credit:</strong> wait a minute on the free tier, or check your provider account.</li>
+            <li><strong>Couldn't reach the provider:</strong> check your internet connection.</li>
+            <li><strong>Google says the key isn't allowed for this API:</strong> open the key in Google AI Studio and make sure it's limited to the Gemini (Generative Language) API.</li>
+            <li><strong>Photos or PDFs ignored:</strong> choose a model that can read images and files.</li></ul></details>
+        <details><summary>The text looks plain or different when I'm offline</summary>
+          <p>SAGE's fonts load from the internet. Offline, it uses your computer's fonts, and everything still works.</p></details>
+      </section>
+    </div>
+  </section>
+
+  <!-- GAME RESULTS -->
+  <section id="view-results" hidden>
+    <div class="done">
+      <h1 id="resTitle"></h1>
+      <p id="resMsg" class="hint"></p>
+      <div class="done-stats" id="resStats"></div>
+      <div class="actions" style="justify-content:center">
+        <button class="btn" id="resBack">Back to games</button>
+        <button class="btn primary" id="resAgain">Play again</button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="foot">
+  <span id="footVersion"></span>
+  <span>Your cards stay in this browser.</span>
+  <a id="footGit" target="_blank" rel="noopener noreferrer" hidden>GitHub</a>
+  <button type="button" class="foot-link" id="footSupport" hidden>Support SAGE</button>
+</footer>
+
+<!-- Deck settings -->
+<dialog id="settingsDlg">
+  <button type="button" class="dlg-close" data-close aria-label="Close">&times;</button>
+  <div id="settingsForm">
+    <h2>Deck options</h2>
+    <button type="button" class="btn primary" id="editCardsBtn" style="margin-bottom:16px">Edit cards</button>
+    <label class="field">Name <input type="text" id="setName" maxlength="80" required></label>
+    <div class="row2">
+      <label class="field">New cards per day <input type="number" id="setNew" min="0" max="9999"></label>
+      <label class="field">Cards per session <input type="number" id="setSession" min="1" max="9999"></label>
+    </div>
+    <label class="field">Target recall: <span id="retVal"></span>
+      <input type="range" id="setRet" min="70" max="97" step="1">
+      <span class="hint">How often you want to remember a card when it comes up. Higher means more reviews.</span>
+    </label>
+    <div class="actions">
+      <button type="button" class="btn quiet" data-close>Cancel</button>
+      <button type="button" class="btn primary" id="saveOpts">Save options</button>
+    </div>
+    <div class="danger-zone">
+      <button type="button" class="btn danger" id="resetDeck">Reset progress</button>
+      <button type="button" class="btn danger" id="deleteDeck">Delete deck</button>
+    </div>
+  </div>
+</dialog>
+
+<!-- Study more -->
+<dialog id="moreDlg">
+  <button type="button" class="dlg-close" data-close aria-label="Close">&times;</button>
+  <h2>Study more</h2>
+  <p class="hint" id="moreMsg"></p>
+  <fieldset>
+    <label class="check"><input type="radio" name="more" value="new"> <span><strong>Learn more new cards</strong><br><span class="hint" id="moreNewHint"></span></span></label>
+    <label class="check"><input type="radio" name="more" value="ahead"> <span><strong>Review ahead</strong><br><span class="hint" id="moreAheadHint"></span></span></label>
+    <label class="check"><input type="radio" name="more" value="practice"> <span><strong>Practice freely</strong><br><span class="hint">Go through cards in random order. Your schedule won't change.</span></span></label>
+  </fieldset>
+  <label class="field">How many cards <input type="number" id="moreCount" min="1" max="9999" value="20"></label>
+  <div class="actions">
+    <button type="button" class="btn quiet" data-close>Cancel</button>
+    <button type="button" class="btn primary" id="moreStart">Start</button>
+  </div>
+</dialog>
+
+<!-- In-app confirmation (replaces the browser's confirm pop-up) -->
+<dialog id="confirmDlg">
+  <h2 id="confirmTitle"></h2>
+  <p id="confirmMsg" class="hint"></p>
+  <div class="actions">
+    <button type="button" class="btn quiet" id="confirmNo">Cancel</button>
+    <button type="button" class="btn danger" id="confirmYes"></button>
+  </div>
+</dialog>
+
+<!-- Support -->
+<dialog id="supportDlg">
+  <button type="button" class="dlg-close" data-close aria-label="Close">&times;</button>
+  <h2>Support SAGE</h2>
+  <p class="hint">SAGE is free and open source. If it helps you study, you can send a tip to one of these addresses.
+    Always check that the address matches the one on the project's GitHub page before sending.</p>
+  <div id="walletList"></div>
+  <div class="actions" style="justify-content:space-between;margin-top:8px">
+    <button type="button" class="btn quiet" id="hideDonate">Hide donate link</button>
+    <button type="button" class="btn" data-close>Close</button>
+  </div>
+</dialog>
+
+<!-- Backup -->
+<dialog id="backupDlg">
+  <button type="button" class="dlg-close" data-close aria-label="Close">&times;</button>
+  <h2>Backups and saving</h2>
+  <p class="hint">Your decks live in this browser. Clearing browser data erases them, so keep a copy outside the browser.</p>
+  <section class="bk-section" id="autoBox" hidden>
+    <h3>Autosave to a file <span class="hint">(recommended)</span></h3>
+    <p class="hint" id="autoStatus"></p>
+    <div class="actions" style="justify-content:flex-start">
+      <button class="btn primary" id="autoChoose">Choose a save file</button>
+      <button class="btn" id="autoOpen">Use an existing save file</button>
+      <button class="btn primary" id="autoReconnect" hidden>Reconnect</button>
+      <button class="btn quiet" id="autoStop" hidden>Stop autosaving</button>
+    </div>
+  </section>
+  <section class="bk-section">
+    <h3>Backup file</h3>
+    <p class="hint" id="backupStatus"></p>
+    <div class="actions" style="justify-content:flex-start">
+      <button class="btn" id="exportBtn">Export backup</button>
+      <label class="btn" for="restoreIn">Restore from backup</label>
+      <input type="file" id="restoreIn" accept=".json,application/json" hidden>
+    </div>
+  </section>
+  <p class="hint" id="persistStatus"></p>
+  <div class="actions"><button class="btn quiet" id="closeBackup">Close</button></div>
+</dialog>
+
+<script>
+{{JS}}</script>
+</body>
+</html>

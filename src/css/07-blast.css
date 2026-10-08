@@ -1,0 +1,96 @@
+/* Blast */
+.blast-banner{background:#121212;color:#fff;border-bottom:1px solid #2A2A2A;border-radius:6px 6px 0 0;padding:16px 20px;text-align:center;font-size:clamp(1.2rem,3.4vw,2rem);
+  font-weight:700;line-height:1.2;white-space:pre-wrap;overflow-wrap:anywhere;min-height:70px;display:flex;align-items:center;justify-content:center}
+.blast-arena{position:relative;height:clamp(440px,72vh,860px);overflow:hidden;border-radius:0 0 6px 6px;background-color:#000;user-select:none;
+  /* Two tiled star layers at different sizes so the pattern never looks like a grid */
+  background-image:
+    radial-gradient(1px 1px at 22px 34px,#fff,transparent),radial-gradient(1px 1px at 131px 88px,#ffffffc0,transparent),
+    radial-gradient(1.5px 1.5px at 67px 152px,#fff,transparent),radial-gradient(1px 1px at 176px 171px,#ffffff90,transparent),
+    radial-gradient(1px 1px at 98px 12px,#ffffffa0,transparent),radial-gradient(1px 1px at 12px 118px,#ffffff80,transparent),
+    radial-gradient(2px 2px at 263px 214px,#fff,transparent),radial-gradient(1px 1px at 307px 61px,#ffffffc0,transparent),
+    radial-gradient(1.5px 1.5px at 214px 306px,#ffffffe0,transparent),radial-gradient(1px 1px at 41px 281px,#ffffffa0,transparent),
+    radial-gradient(1px 1px at 158px 247px,#ffffff70,transparent);
+  background-size:200px 200px,200px 200px,200px 200px,200px 200px,200px 200px,200px 200px,
+    340px 340px,340px 340px,340px 340px,340px 340px,340px 340px;
+  transition:box-shadow .15s}
+.blast-arena.hurt{box-shadow:inset 0 0 0 4px #E06272}
+.blast-time{position:absolute;top:8px;left:50%;transform:translateX(-50%);color:#E6E6E6;font-size:1.4rem;font-weight:700;font-variant-numeric:tabular-nums;z-index:2}
+.blast-time.low{color:#FF8A96}
+.blast-bonus{position:absolute;top:38px;left:50%;transform:translateX(-50%);color:#7BE0B0;font-weight:700;opacity:0;transition:opacity .2s;z-index:2}
+.blast-bonus.show{opacity:1}
+.blast-bonus.bad{color:#FF8A96}
+.astro{position:absolute;top:0;left:0;border-radius:50%;display:flex;align-items:center;justify-content:center;text-align:center;padding:18px;
+  color:#fff;font-size:1rem;font-weight:700;line-height:1.2;overflow-wrap:anywhere;cursor:crosshair;will-change:transform;z-index:1;
+  border:0;text-shadow:0 1px 3px #000c,0 0 6px #0008;--glow:#7FA8FF;
+  box-shadow:0 0 14px -2px var(--glow);transition:box-shadow .15s}
+/* Every planet = lighting overlay + its own surface. The overlay adds a highlight and a shadowed night side. */
+.astro{--light:radial-gradient(circle at 30% 26%,#ffffff40,transparent 38%),radial-gradient(circle at 70% 74%,transparent 42%,#00000080 78%)}
+.astro.p0{--glow:#5FA8FF;background:var(--light),radial-gradient(ellipse 30% 18% at 35% 60%,#3E8A5A 60%,transparent 62%),
+  radial-gradient(ellipse 22% 16% at 66% 34%,#3E8A5A 60%,transparent 62%),radial-gradient(circle,#2F78B8,#1C4E86)}
+.astro.p1{--glow:#FF8A66;background:var(--light),radial-gradient(circle at 62% 38%,#7A2A1C 7%,transparent 8%),
+  radial-gradient(circle at 34% 68%,#7A2A1C 9%,transparent 10%),radial-gradient(circle at 74% 70%,#86321F 5%,transparent 6%),
+  radial-gradient(circle,#C25A3A,#8A3420)}
+.astro.p2{--glow:#F2C27A;background:var(--light),
+  repeating-linear-gradient(172deg,#B9844A 0 12%,#9C6634 12% 19%,#C99A62 19% 30%,#8E5B2E 30% 36%)}
+.astro.p3{--glow:#9FE6F2;background:var(--light),radial-gradient(ellipse 60% 22% at 50% 12%,#E6F6FA88 50%,transparent 52%),
+  radial-gradient(circle,#4F95A8,#2A5E70)}
+.astro.p4{--glow:#C59BFF;background:var(--light),
+  repeating-linear-gradient(160deg,#6A43B0 0 14%,#4E2E8A 14% 24%,#7D55C4 24% 33%)}
+.astro.p5{--glow:#E8D49A;background:var(--light),repeating-linear-gradient(176deg,#A88F5A 0 16%,#8C7446 16% 26%,#B59D68 26% 38%)}
+.astro.p5::after{content:"";position:absolute;left:-16%;right:-16%;top:38%;height:28%;border-radius:50%;pointer-events:none;
+  border:4px solid #E8D49Acc;border-top-color:transparent;transform:rotate(-14deg)}
+.astro{overflow:visible}
+/* Text sits above the planet, its ring, and its glow; if it's too long for the planet it spills over the edge instead of being cut off */
+.astro-text{position:relative;z-index:2;max-width:150%;overflow-wrap:anywhere;text-shadow:0 1px 3px #000,0 0 6px #000,0 0 2px #000}
+@media (max-width:640px){.astro{padding:8px;font-size:.8rem}.astro.long{font-size:.7rem}.astro.xlong{font-size:.6rem}}
+.astro.long{font-size:.8rem}
+.astro.xlong{font-size:.66rem;line-height:1.1}
+.astro:hover,.astro:focus-visible{box-shadow:0 0 0 3px #ffffffb0,0 0 18px var(--glow)}
+.astro.hit{opacity:0;scale:.6;transition:opacity .14s,scale .14s;pointer-events:none}
+.astro.wrong{background:radial-gradient(circle at 70% 74%,transparent 42%,#00000080 78%),radial-gradient(circle,#D04A5A,#7E1E2C);--glow:#FF6B7D}
+.boom{position:absolute;width:0;height:0;z-index:2;pointer-events:none}
+.boom::before{content:"";position:absolute;left:-14px;top:-14px;width:28px;height:28px;border-radius:50%;
+  background:radial-gradient(circle,#FFF6D8,#FFC85A 55%,transparent 70%);animation:boomflash .22s ease-out forwards}
+.boom i{position:absolute;left:-3px;top:-3px;width:6px;height:6px;border-radius:50%;background:#FFD27A;
+  animation:spark .3s ease-out forwards;transform:rotate(var(--a)) translateX(0)}
+@keyframes boomflash{from{transform:scale(.4);opacity:1}to{transform:scale(1.6);opacity:0}}
+@keyframes spark{to{transform:rotate(var(--a)) translateX(var(--d,32px));opacity:0}}
+@media (prefers-reduced-motion:reduce){.boom i{display:none}}
+.ship{position:absolute;left:50%;bottom:-34px;width:96px;height:96px;margin-left:-48px;border-radius:50%;z-index:3;pointer-events:none;
+  border:4px solid #A3A9B1;box-shadow:0 0 0 2px #3E434A,0 -4px 14px #00000080;
+  background:
+    radial-gradient(circle,transparent 58%,#2F343A 59% 61%,transparent 62%),             /* outer seam */
+    radial-gradient(circle,transparent 36%,#2F343A 37% 39%,transparent 40%),             /* inner seam */
+    radial-gradient(circle at 18% 50%,#2A2E33 2.5px,transparent 3.5px),                   /* rivets */
+    radial-gradient(circle at 82% 50%,#2A2E33 2.5px,transparent 3.5px),
+    radial-gradient(circle at 50% 16%,#2A2E33 2.5px,transparent 3.5px),
+    repeating-linear-gradient(0deg,transparent 0 11px,#00000026 11px 12px),               /* panel lines */
+    repeating-linear-gradient(90deg,transparent 0 11px,#0000001c 11px 12px),
+    radial-gradient(circle at 38% 30%,#D3D7DC,#8D939B 55%,#565B62)}
+.ship::before{content:"";position:absolute;left:50%;top:50%;width:26px;height:26px;margin:-13px 0 0 -13px;border-radius:50%;
+  background:radial-gradient(circle at 40% 35%,#FF9C9C,#B3261E 60%,#5A100C);box-shadow:0 0 0 3px #3E434A,0 0 8px #FF4D4D80}
+.ship::after{content:"";position:absolute;left:50%;top:-22px;width:14px;height:34px;margin-left:-7px;border-radius:3px;
+  background:linear-gradient(90deg,#5B6067,#B4BAC1 45%,#6A7078);border:1px solid #3A3E44;
+  transform-origin:50% 66px;transform:rotate(var(--aim,0deg))}
+.laser{position:absolute;height:4px;margin-top:-2px;border-radius:2px;background:linear-gradient(90deg,#FF2A2A,#FF7A7A);box-shadow:0 0 6px #FF2A2A;transform-origin:0 50%;
+  transform:rotate(var(--r)) scaleX(1);z-index:2;pointer-events:none;animation:laser .28s ease-out forwards}
+.laser.reflect{height:5px;background:linear-gradient(90deg,#FFB070,#FF3B1F);box-shadow:0 0 8px #FF6A2A}
+@keyframes laser{0%{transform:rotate(var(--r)) scaleX(0);opacity:1}35%{transform:rotate(var(--r)) scaleX(1);opacity:1}100%{transform:rotate(var(--r)) scaleX(1);opacity:0}}
+.ship{transition:background .15s,border-color .15s}
+.ship.damaged{background:radial-gradient(circle at 50% 40%,#FF9AA6,#C93A4C 70%);border-color:#FFC2CA;animation:shipshake .3s}
+@keyframes shipshake{25%{translate:-5px 0}75%{translate:5px 0}}
+@media (prefers-reduced-motion:reduce){.ship.damaged{animation:none}}
+.blast-meters{position:absolute;left:16px;right:16px;bottom:12px;display:flex;justify-content:space-between;align-items:flex-end;z-index:2;pointer-events:none;color:#E8EBFF;font-weight:700}
+.meter{display:flex;flex-direction:column;gap:5px;min-width:130px}
+.meter-row{display:flex;justify-content:space-between;gap:10px}
+.bar{height:9px;border-radius:5px;background:#2E2E2E;overflow:hidden}
+.bar i{display:block;height:100%;background:#7BE0B0;transition:width .2s}
+.streak{display:flex;gap:3px}
+.streak i{width:12px;height:9px;border-radius:3px;background:#2E2E2E}
+.streak i.on{background:#C38BFF}
+.mult{color:#FFD27A;font-size:.85rem;margin-left:4px}
+@media (max-width:560px){.meter{min-width:96px}.streak i{width:7px}.ship{width:76px;height:76px;margin-left:-38px;bottom:-30px}.ship::after{transform-origin:50% 56px}}
+@media (prefers-reduced-motion:reduce){.astro.hit{transition:none}.laser{animation-duration:.01s}}
+.scramble-prompt{margin-top:10px;padding:14px 18px;min-height:64px;background:#1C1712;color:#F3E9DA;border-radius:4px;border-top:3px solid #E0A14A;
+  font-size:1.3rem;font-weight:700;text-align:center;white-space:pre-wrap;overflow-wrap:anywhere}
+.scramble-answer{color:#7BD9A8}
